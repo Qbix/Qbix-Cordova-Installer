@@ -589,13 +589,13 @@ function createBundle(appConfig, platforms) {
     if (appConfig.Bundle.Q != undefined) {
         if (appConfig.Bundle.Q.webProjectPath == undefined || appConfig.Bundle.Q.webProjectPath.length == 0) return;
 
-        var bundlePath = path.join(appConfig.Bundle.Q.webProjectPath);
+        var appPath = path.join(appConfig.Bundle.Q.webProjectPath);
         var qPath = path.join(appConfig.Bundle.Q.QProjectPath);
-        var installScript = path.join(bundlePath, "/scripts/Q/install.php");
-        var bundleScript = path.join(bundlePath, "/scripts/Q/bundle.php");
+        var installScript = path.join(appPath, "/scripts/Q/install.php");
+        var bundleScript = path.join(appPath, "/scripts/Q/bundle.php");
 
         // Update Q repo
-        var pluginsPath = path.join(qPath, "platform/plugins");
+        var pluginsPath = path.join(qPath, "plugins");
         var plugins = getDirectories(pluginsPath);
 
         for (var dirIndex in plugins) {
@@ -608,7 +608,7 @@ function createBundle(appConfig, platforms) {
         }
 
         // Update repo
-        shell.cd(bundlePath);
+        shell.cd(appPath);
         shell.exec("hg pull -u " + createHgPullPath(appConfig.Bundle.Q.url, appConfig.Bundle.Q.login, appConfig.Bundle.Q.password));
         shell.exec("hg update");
 
