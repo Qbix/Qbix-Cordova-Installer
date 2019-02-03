@@ -62,11 +62,6 @@ async function main() {
         platforms[appConfig.platforms[platform]] = path.join(platformAppDirectory, appNameForOS)
     }
 
-
-    var FULL_CREATE = false
-    var UPDATE_PLUGIN = false
-    var UPDATE_BUNDLE = true
-
     if (FULL_CREATE) {
 // Add projects
     addProjects(appNameForOS)
