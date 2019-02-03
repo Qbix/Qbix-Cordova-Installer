@@ -1,0 +1,50 @@
+# This file contains the fastlane.tools configuration
+# You can find the documentation at https://docs.fastlane.tools
+#
+# For a list of all available actions, check out
+#
+#     https://docs.fastlane.tools/actions
+#
+# For a list of all available plugins, check out
+#
+#     https://docs.fastlane.tools/plugins/available-plugins
+#
+
+# Uncomment the line if you want fastlane to automatically update itself
+# update_fastlane
+
+default_platform(:ios)
+
+platform :ios do
+  desc "Build release IPA"
+  lane :build do
+    build_app(scheme: "<project_name>",workspace: "<project_name>.xcworkspace",include_bitcode: true,export_xcargs: "-allowProvisioningUpdates")
+  end
+
+  desc "Release to Apple Store"
+  lane :release do
+      build
+      screenshots
+      deploy
+  end
+
+  desc "Release without screenshots"
+  lane :release_no_screenshot do
+      deploy
+  end
+
+  desc "Capture screenshots"
+  lane :screenshots do
+    build_app_action
+    capture_screenshots
+  end
+
+  desc "Deploy a new version to the Apple Store"
+  lane :deploy do
+      deliver(
+        ignore_language_directory_validation: true,
+   	  	force:true,
+   	  	overwrite_screenshots:true
+      )
+  end
+end

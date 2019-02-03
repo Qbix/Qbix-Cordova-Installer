@@ -1,0 +1,3 @@
+clear_previous_screenshots(true)
+
+launch_arguments([<screenshots_string>])

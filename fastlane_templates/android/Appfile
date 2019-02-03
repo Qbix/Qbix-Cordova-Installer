@@ -1,0 +1,2 @@
+json_key_file("qbix_google_play_console.json")
+package_name(<package_id>)

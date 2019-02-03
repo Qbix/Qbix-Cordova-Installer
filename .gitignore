@@ -1,0 +1,6 @@
+node_modules/
+tmp_translate_in/
+tmp_translate_output/
+package-lock.json
+.idea/
+working_en-US.json

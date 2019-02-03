@@ -1,0 +1,52 @@
+default_platform(:android)
+
+platform :android do
+  desc "Submit to Crashlytics Beta"
+  lane :beta do
+    gradle(task: "clean assembleRelease")
+    crashlytics
+  end
+
+  desc "Build release APK"
+  lane :build do
+        gradle(task: "clean assembleRelease")
+  end
+
+  desc "Release to Google Play"
+  lane :release do
+      build
+      screenshots
+      deploy
+  end
+
+  desc "Release without screenshots"
+  lane :release_no_screenshot do
+    deploy
+  end
+
+  desc "Deploy a new version to the Google Play"
+  lane :deploy do
+    gradle(task: "clean assembleRelease")
+    upload_to_play_store
+  end
+
+  desc "Capture screenshots"
+  lane :screenshots do
+    build_android_app(
+      task: 'assemble',
+      build_type: 'Debug'
+    )
+    build_android_app(
+      task: 'assemble',
+      build_type: 'AndroidTest'
+    )
+    capture_android_screenshots(
+      locales: ["en-US"],
+      clear_previous_screenshots: true,
+      launch_arguments:[<screenshots_array>],
+      app_apk_path: "build/outputs/apk/android-debug.apk",
+      tests_apk_path: "build/outputs/apk/android-debug-androidTest.apk"
+    )
+  end
+
+end
