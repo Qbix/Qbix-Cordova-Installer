@@ -354,7 +354,7 @@ function updateNameOfApp(appConfig, platforms) {
     for(platform in platforms) {
         var pathFolder = path.join(platforms[platform])
         if(platform == "android") {
-            var stringFilePath = path.join(pathFolder, "platforms", "android", "res", "values", "strings.xml")
+            var stringFilePath = path.join(pathFolder, "platforms", "android", "app", "src", "main", "res", "values", "strings.xml")
             var globalResult = readXmlFile(stringFilePath);
             for (item in globalResult.resources.string) {
                 var itemContent = globalResult.resources.string[item];
@@ -414,30 +414,30 @@ async function copyIcons(platforms, appRootPath) {
         "icon-83.5@2x.png":"167:167",
         "icon-1024.png":"1024:1024"
     };
-    var iosIcons = {
-            "icon-60@3x.png":"180:180",
-            "icon-60.png":"60:60",
-            "icon-60@2x.png":"120:120",
-            "icon-76.png":"76:76",
-            "icon-76@2x.png":"152:152",
-            "icon-40.png":"40:40",
-            "icon-40@2x.png":"80:80",
-            "icon-40@3x.png":"120:120",
-            "icon.png":"57:57",
-            "icon@2x.png":"114:114",
-            "icon-72.png":"72:72",
-            "icon-72@2x.png":"144:144",
-            "icon-small.png":"29:29",
-            "icon-small@2x.png":"58:58",
-            "icon-small@3x.png":"87:87",
-            "icon-50.png":"50:50",
-            "icon-50@2x.png":"100:100",
-            "icon-20.png":"20:20",
-            "icon-20@2x.png":"40:40",
-            "icon-20@3x.png":"60:60",
-            "icon-83.5@2x.png":"167:167",
-            "icon-1024.png":"1024:1024"
-    };
+    // var iosIcons = {
+    //         "icon-60@3x.png":"180:180",
+    //         "icon-60.png":"60:60",
+    //         "icon-60@2x.png":"120:120",
+    //         "icon-76.png":"76:76",
+    //         "icon-76@2x.png":"152:152",
+    //         "icon-40.png":"40:40",
+    //         "icon-40@2x.png":"80:80",
+    //         "icon-40@3x.png":"120:120",
+    //         "icon.png":"57:57",
+    //         "icon@2x.png":"114:114",
+    //         "icon-72.png":"72:72",
+    //         "icon-72@2x.png":"144:144",
+    //         "icon-small.png":"29:29",
+    //         "icon-small@2x.png":"58:58",
+    //         "icon-small@3x.png":"87:87",
+    //         "icon-50.png":"50:50",
+    //         "icon-50@2x.png":"100:100",
+    //         "icon-20.png":"20:20",
+    //         "icon-20@2x.png":"40:40",
+    //         "icon-20@3x.png":"60:60",
+    //         "icon-83.5@2x.png":"167:167",
+    //         "icon-1024.png":"1024:1024"
+    // };
 
     for(platform in platforms) {
         var pathFolder = path.join(platforms[platform])
@@ -460,8 +460,8 @@ async function copyIcons(platforms, appRootPath) {
             for(iconSize in iosIcons) {
                 var size = parseInt(iosIcons[iconSize].split(":")[0], 10);
                 if(size == 1024) {
-                    // filePromises.push(sharp(originalIconPath).jpeg().resize(size, size).toFile(path.join(platformPath, iconSize.replace(".png", ".jpeg"))));
-                    filePromises.push(sharp(originalIconPath).resize(size, size).background({r: 255, g: 255, b: 255, alpha: 1}).toFile(path.join(platformPath, iconSize)));
+                    filePromises.push(sharp(originalIconPath).jpeg().resize(size, size).toFile(path.join(platformPath, iconSize.replace(".png", ".jpeg"))));
+                    // filePromises.push(sharp(originalIconPath).resize(size, size).background({r: 255, g: 255, b: 255, alpha: 1}).toFile(path.join(platformPath, iconSize)));
                 } else {
                     filePromises.push(sharp(originalIconPath).resize(size, size).toFile(path.join(platformPath, iconSize)));
                 }
@@ -612,20 +612,26 @@ function createBundle(appConfig, platforms) {
         shell.exec("hg pull -u " + createHgPullPath(appConfig.Bundle.Q.url, appConfig.Bundle.Q.login, appConfig.Bundle.Q.password));
         shell.exec("hg update");
 
-        var result = shell.exec("php " + installScript + "  --all").output;
+        var command = "php " + installScript + "  --all";
+        console.log(command);
+        var result = shell.exec(command).output;
         console.log('Result ' + result);
         for (platform in platforms) {
             var pathFolder = path.join(platforms[platform], "www/Bundle");
             createFolderIfNotExist(pathFolder);
             shell.exec("php " + bundleScript + " " + pathFolder).output;
             if (platform === "android") {
-                var androidPathFolder = path.join(platforms[platform], "platforms/android/assets/", "www/Bundle");
+                var androidPathFolder = path.join(platforms[platform], "platforms/android/app/src/main/assets/", "www/Bundle");
                 createFolderIfNotExist(androidPathFolder);
-                shell.exec("php " + bundleScript + " " + androidPathFolder).output;
+                var command = "php " + bundleScript + " " + androidPathFolder;
+                console.log(command);
+                shell.exec(command).output;
             } else if (platform === "ios") {
                 var iosPathFolder = path.join(platforms[platform], "platforms/ios/", "www/Bundle");
                 createFolderIfNotExist(iosPathFolder);
-                shell.exec("php " + bundleScript + " " + iosPathFolder).output;
+                var command = "php " + bundleScript + " " + iosPathFolder;
+                console.log(command);
+                shell.exec(command).output;
             }
         }
     } else if(appConfig.Bundle.Direct != undefined) {
@@ -677,7 +683,7 @@ function copyQConfig(appConfig, platforms) {
         if (fs.existsSync(pathFolder)) {
             fs_extra.writeJsonSync(path.join(pathFolder, configFilename), config)
             if(platform === "android") {
-                fs_extra.writeJsonSync(path.join(pathFolder, "platforms/android/assets/", configFilename), config)
+                fs_extra.writeJsonSync(path.join(pathFolder, "platforms/android/app/src/main/assets/", configFilename), config)
             } else if(platform === "ios") {
                 var iosResourcePath = path.join(pathFolder, "platforms/ios/", appConfig.name, "Resources");
                 createFolderIfNotExist(iosResourcePath);
