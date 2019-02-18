@@ -65,11 +65,16 @@ var android_not_supported_languages = [
 if(ops.ios) {
     for(index in ios_metadata_translations) {
         var fileName =  ios_metadata_translations[index];
+        fileName = fileName.split('/').pop()
+        console.log(pathToMedatada);
+        console.log(sourceLanguage);
+        console.log(fileName);
         translateFile(pathToMedatada, sourceLanguage, fileName, android_not_supported_languages);
     }
 } else if(ops.android) {
     for(index in android_metadata_translations) {
         var fileName =  android_metadata_translations[index];
+        fileName = fileName.split('/').pop()
         translateFile(pathToMedatada, sourceLanguage, fileName, android_not_supported_languages);
     }
 }

@@ -35,7 +35,7 @@ platform :ios do
 
   desc "Capture screenshots"
   lane :screenshots do
-    build_app_action
+    build
     capture_screenshots
   end
 

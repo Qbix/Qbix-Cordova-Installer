@@ -30,7 +30,7 @@ platform :android do
     upload_to_play_store
   end
 
-  desc "Capture screenshots"
+  desc "Capture screenshots. Please run emulator before run"
   lane :screenshots do
     build_android_app(
       task: 'assemble',
@@ -44,8 +44,8 @@ platform :android do
       locales: ["en-US"],
       clear_previous_screenshots: true,
       launch_arguments:[<screenshots_array>],
-      app_apk_path: "build/outputs/apk/android-debug.apk",
-      tests_apk_path: "build/outputs/apk/android-debug-androidTest.apk"
+      app_apk_path: "app/build/outputs/apk/debug/app-debug.apk",
+      tests_apk_path: "app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk"
     )
   end
 
