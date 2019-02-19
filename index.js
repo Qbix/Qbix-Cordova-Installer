@@ -15,16 +15,21 @@ var stdio = require('stdio');
 
 var ops = stdio.getopt({
     'appconfig': {key: 'c', args: 1, mandatory: true, description: 'Full path to config file'},
+    'php': {key: 'p', args: 1, mandatory: true, description: 'Full path to PHP interpreter'},
+    'screengenerator': {key: 's', args: 1, mandatory: true, description: 'Full path to screengenerator'},
     'full_create': {description: 'Create app, Install plugins, Update bundle'},
     'update_plugin': {description: 'Install/Update Plugins, Update bundle'},
     'update_bundle': {description: 'Update bundle'},
+
 });
 
 var appConfig = undefined;
 var platforms = {};
+var phpInterpreter = undefined;
+var screengenerator = undefined;
 
 main().then(result => {
-    console.log("DONE");
+    console.log("Finish generate project");
 });
 
 async function main() {
@@ -32,18 +37,19 @@ async function main() {
     var UPDATE_PLUGIN = false
     var UPDATE_BUNDLE = false
     var BUILD_AFTER = true
+    
     if (ops.appconfig) {
         FULL_CREATE = ops.full_create;
         UPDATE_PLUGIN = ops.update_plugin;
         UPDATE_BUNDLE = ops.update_bundle;
+        phpInterpreter = ops.php;
+        screengenerator = ops.screengenerator;
     }
     console.log(ops);
     var pathToConfig = ops.appconfig;
     if (!path.isAbsolute(pathToConfig)) {
         pathToConfig = path.join(__dirname, pathToConfig)
     }
-
-    console.log(pathToConfig);
 
     appConfig = require(pathToConfig);
     var appNameForOS = appConfig.name.split(" ").join('')
@@ -63,24 +69,28 @@ async function main() {
     }
 
     if (FULL_CREATE) {
-// Add projects
-    addProjects(appNameForOS)
+    // Add projects
+        addProjects(appNameForOS)
 
-// setupConfig
-    setupConfig(appConfig);
+    // setupConfig
+        setupConfig(appConfig);
 
-// Copy icons
-await copyIcons(platforms, appRootPath);
+    // Copy icons
+        await copyIcons(platforms, appRootPath);
 
-// Add platforms
-    addPlatforms();
+    // Add platforms
+        addPlatforms();
 
-        // Copy resourcpyResources(appConfig, appRootPath, platforms)
+    // Copy resourcpyResources(appConfig, appRootPath, platforms)
         copyResources(appConfig, appRootPath, platforms)
 
-
-// Copy splashscreen for ios
-    copyIOSSplashscreens();
+        if(appConfig.splashscreen != undefined) {
+            // Generate splashscreen
+            await generateSplashscreens(appConfig, appRootPath);
+        } else {
+            // Copy splashscreen
+            copyIOSSplashscreens();
+        }
     }
 
     if (FULL_CREATE || UPDATE_PLUGIN) {
@@ -91,17 +101,16 @@ await copyIcons(platforms, appRootPath);
 
     }
     if (FULL_CREATE || UPDATE_PLUGIN || UPDATE_BUNDLE) {
-
-    //    update metadata
-    updateMetadata(appConfig, platforms);
-    //create bundle
-    createBundle(appConfig, platforms)
-    //create config.json file for main Q plugin
-    copyQConfig(appConfig, platforms);
-    // Update name of app
-    updateNameOfApp(appConfig, platforms)
-    // Create deploy config
-    createDeployConfig(appConfig, platforms);
+        //    update metadata
+        updateMetadata(appConfig, platforms);
+        //create bundle
+        createBundle(appConfig, platforms)
+        //create config.json file for main Q plugin
+        copyQConfig(appConfig, platforms);
+        // Update name of app
+        updateNameOfApp(appConfig, platforms)
+        // Create deploy config
+        createDeployConfig(appConfig, platforms);
     }
 
     if(BUILD_AFTER) {
@@ -158,6 +167,7 @@ function removePlugins(removePlugins) {
 }
 
 function addPlugins() {
+    console.log("Add plugins")
     for(plugin in appConfig.plugins) {
         var pluginConfig = appConfig.plugins[plugin]
 
@@ -168,8 +178,9 @@ function addPlugins() {
 
             var pluginOption = appConfig.plugins[plugin];
             shell.cd(pathToApp);
+            console.log("Plugin "+plugin);
             command = generatePluginInstallCL(plugin, pluginOption, pathToApp)
-            shell.exec(command);
+            shell.exec(command).stdout;
 
             var platform = [pluginConfig.platforms[platformIndex]]
             if(pluginOption.patch != undefined) {
@@ -272,8 +283,8 @@ function createDeployConfig(appConfig, platforms) {
                     androidScreengrabScreenshots += ","
                     iosScreenshots += ","
                 }
-                androidScreengrabScreenshots += screen
-                iosScreenshots += "\"-init_url "+screen+"\""
+                androidScreengrabScreenshots += screen.url
+                iosScreenshots += "\"-init_url "+screen.url+"\""
             });
         }
         if(platform == "android") {
@@ -448,8 +459,6 @@ async function copyIcons(platforms, appRootPath) {
         removeDir(path.join(pathToResource, "icon"))
         mkDir(path.join(platformPath))
 
-        console.log(path.join(platformPath))
-
         var filePromises = [];
         if(platform == "android") {
             for(iconSize in androidIconSize) {
@@ -502,25 +511,89 @@ async function copyIcons(platforms, appRootPath) {
         }
         writeXmlFile(path.join(pathFolder, "config.xml"), config);
     }
+}
 
-    console.log("Finish copy icons");
+async function generateSplashscreens(appConfig, appRootPath) {
+    console.log("Generate Splashscreens");
+    var originalIconPath = path.join(appRootPath, "icon.png")
+
+    var iosSplashscreens = {
+        "Default-568h@2x~iphone.png":"640:1136",
+        "Default-667h.png":"750:1334",
+        "Default-736h.png":"1242:2208",
+        "Default-2436h.png":"1125:2436",
+        "Default@2x~iphone.png":"640:960",
+        "Default~iphone.png":"320:480",
+        "Default-Landscape-736h.png":"2208:1242",
+        "Default-Landscape-2436h.png":"2436:1125",
+        "Default-Landscape@2x~ipad.png":"2048:1536",
+        "Default-Landscape~ipad.png":"1024:768",
+        "Default-Portrait@2x~ipad.png":"1536:2048",
+        "Default-Portrait~ipad.png":"768:1024"
+    }
+
+    var tempSourceDir = path.join(__dirname, "tmp_screenshot_in");
+    removeDir(tempSourceDir);
+    mkDir(tempSourceDir);
+
+    for(platform in platforms) {
+        var pathFolder = path.join(platforms[platform])
+        if(platform == "android") {
+           
+        } else {
+           for (screenshot in iosSplashscreens) {
+               var name = screenshot;
+               var width = parseInt(iosSplashscreens[screenshot].split(":")[0], 10);
+               var height = parseInt(iosSplashscreens[screenshot].split(":")[1], 10);
+               
+               var templatePath = path.join(tempSourceDir, "tmp_template.png");
+               // Generate template path
+               await sharp({
+                    create: {
+                    width: width,
+                    height: height,
+                    channels: 4,
+                    background: { r: 255, g: 255, b: 255, alpha: 0 }
+                    }
+                })
+                .png()
+                .toFile(templatePath);
+
+                var iconWidth = width*0.5
+                var x = width*0.25
+                var y = height/2 - iconWidth/2
+                if(height < width) {
+                    iconWidth = height*0.5
+                    x = width/2 - iconWidth/2
+                    y = height*0.25
+                }
+                var iconHeight = iconWidth
+                
+                var templateConfig = {
+                    "screenshot": {
+                        "x":x,
+                        "y":y,
+                        "width":iconWidth,
+                        "height":iconHeight
+                    }
+                }
+
+                var templateConfigPath = path.join(tempSourceDir, "tmp_config.json");
+                fs.writeFileSync(templateConfigPath, JSON.stringify(templateConfig));
+
+                var outputCordovaPath = path.join(pathFolder, "res", "screen", "ios", name);
+                var outputIOSPath = path.join(pathFolder, "platforms", "ios", appConfig.name.replace(/ /g, '\\ '), "Images.xcassets", "LaunchImage.launchimage", name);
+                
+                var command = phpInterpreter+" "+screengenerator+" -t \""+templatePath+"\" -x \""+templateConfigPath+"\" -r png -c "+"\""+appConfig.splashscreen.background+"\""+" -s \""+originalIconPath+"\" -o "+width+"x"+height
+                command += " -d \""+outputIOSPath+"\"";          
+                
+                shell.exec(command).output;
+           }
+        }
+    }
 }
 
 function copyIOSSplashscreens() {
-    // var iosSplashscreens = {
-    //     "1125x2436.png":"Default-2436h.png",
-    //     "2436x1125.png":"Default-Landscape-2436h.png",
-    //     "2048x1536.png":"Default-Landscape@2x~ipad.png",
-    //     "1024x768.png":"Default-Landscape~ipad.png",
-    //     "1536x2048.png":"Default-Portrait@2x~ipad.png",
-    //     "768x1024.png":"Default-Portrait~ipad.png",
-    //     "750x1334.png":"Default-667h.png",
-    //     "1242x2208.png":"Default-736h.png",
-    //     "2208x1242.png":"Default-Landscape-736h.png",
-    //     "640x960.png":"Default@2x~iphone.png",
-    //     "640x1136.png":"Default-568h@2x~iphone.png",
-    //     "320x480.png":"Default~iphone.png"
-    // };
     for(platform in platforms) {
         if(platform == "ios") {
             var pathFolder = path.join(platforms[platform])
@@ -615,7 +688,6 @@ function createBundle(appConfig, platforms) {
         var command = "php " + installScript + "  --all";
         console.log(command);
         var result = shell.exec(command).output;
-        console.log('Result ' + result);
         for (platform in platforms) {
             var pathFolder = path.join(platforms[platform], "www/Bundle");
             createFolderIfNotExist(pathFolder);
@@ -679,7 +751,6 @@ function copyQConfig(appConfig, platforms) {
     var configFilename = "config.json"
     for(platform in platforms) {
         var pathFolder = path.join(platforms[platform])
-        console.log(pathFolder)
         if (fs.existsSync(pathFolder)) {
             fs_extra.writeJsonSync(path.join(pathFolder, configFilename), config)
             if(platform === "android") {
@@ -729,11 +800,10 @@ function createQConfigFile(appConfig) {
 }
 
 function copyResources(appConfig, appRootPath, platforms) {
+    console.log("Copy Resources")
     for(fileIndex in appConfig.resources) {
         var resource = appConfig.resources[fileIndex]
         var sourceFilePath = path.join(appRootPath, resource.path);
-        console.log(resource);
-        console.log(sourceFilePath);
 
         for(platform in resource.platforms) {
             var pathToPlatform = platforms[resource.platforms[platform]]
