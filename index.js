@@ -11,6 +11,9 @@ xml2js = require('xml2js');
 var plist = require('plist');
 var sharp = require('sharp');
 var stdio = require('stdio');
+var xcode = require('xcode');
+var sync = require('sync');
+var deasync = require('deasync');
 
 
 var ops = stdio.getopt({
@@ -107,18 +110,37 @@ async function main() {
         createBundle(appConfig, platforms)
         //create config.json file for main Q plugin
         copyQConfig(appConfig, platforms);
-        // Update name of app
-        updateNameOfApp(appConfig, platforms)
         // Create deploy config
         createDeployConfig(appConfig, platforms);
     }
 
+    cordovaBuild(BUILD_AFTER,platforms)
+
+    if (FULL_CREATE) {
+        performManulaChanges(appConfig, platforms)
+        cordovaBuild(BUILD_AFTER,platforms)
+    }
+
+    if (FULL_CREATE || UPDATE_PLUGIN || UPDATE_BUNDLE) {
+        // Update name of app
+        updateNameOfApp(appConfig, platforms)
+    }
+
+    // performManulaChanges(appConfig, platforms)
+    // cordovaBuild(BUILD_AFTER,platforms)
+}
+
+function cordovaBuild(BUILD_AFTER,platforms) {
     if(BUILD_AFTER) {
         for(platform in platforms) {
             shell.cd(platforms[platform]);
-            shell.exec('cordova build ' + platform).output;
+            execWithLog('cordova build ' + platform);
         }
     }
+}
+
+function execWithLog(command) {
+    console.log(shell.exec(command).stdout);
 }
 
 function writeXmlFile(xmlPath, parsedConfigFile) {
@@ -336,6 +358,7 @@ function createDeployConfig(appConfig, platforms) {
             //Copy Fastfile
             var fastfileContent = fs.readFileSync(path.join(fastlaneExamplePath, "Fastfile"), "utf-8");
             fastfileContent = fastfileContent.replace(/<project_name>/g, appConfig.name);
+            fastfileContent = fastfileContent.replace(/<team_id>/g, appConfig.signing.ios.team_id);
             fs.writeFileSync(path.join(fastlanePath, "Fastfile"), fastfileContent)
             //Copy Snapfile
             var snapfileContent = fs.readFileSync(path.join(fastlaneExamplePath, "Snapfile"), "utf-8");
@@ -364,6 +387,11 @@ function createDeployConfig(appConfig, platforms) {
 function updateNameOfApp(appConfig, platforms) {
     for(platform in platforms) {
         var pathFolder = path.join(platforms[platform])
+
+        // var config = readXmlFile(path.join(pathFolder, "config.xml"))
+        // config.widget.name = appConfig.displayName;
+        // writeXmlFile(path.join(pathFolder, "config.xml"), config);
+
         if(platform == "android") {
             var stringFilePath = path.join(pathFolder, "platforms", "android", "app", "src", "main", "res", "values", "strings.xml")
             var globalResult = readXmlFile(stringFilePath);
@@ -587,11 +615,13 @@ async function generateSplashscreens(appConfig, appRootPath) {
                 var command = phpInterpreter+" "+screengenerator+" -t \""+templatePath+"\" -x \""+templateConfigPath+"\" -r png -c "+"\""+appConfig.splashscreen.background+"\""+" -s \""+originalIconPath+"\" -o "+width+"x"+height
                 command += " -d \""+outputIOSPath+"\"";          
                 
-                shell.exec(command).output;
+                shell.exec(command);
            }
         }
     }
 }
+
+
 
 function copyIOSSplashscreens() {
     for(platform in platforms) {
@@ -687,23 +717,23 @@ function createBundle(appConfig, platforms) {
 
         var command = "php " + installScript + "  --all";
         console.log(command);
-        var result = shell.exec(command).output;
+        execWithLog(command);
         for (platform in platforms) {
             var pathFolder = path.join(platforms[platform], "www/Bundle");
             createFolderIfNotExist(pathFolder);
-            shell.exec("php " + bundleScript + " " + pathFolder).output;
+            execWithLog("php " + bundleScript + " " + pathFolder);
             if (platform === "android") {
                 var androidPathFolder = path.join(platforms[platform], "platforms/android/app/src/main/assets/", "www/Bundle");
                 createFolderIfNotExist(androidPathFolder);
                 var command = "php " + bundleScript + " " + androidPathFolder;
                 console.log(command);
-                shell.exec(command).output;
+                execWithLog(command);
             } else if (platform === "ios") {
                 var iosPathFolder = path.join(platforms[platform], "platforms/ios/", "www/Bundle");
                 createFolderIfNotExist(iosPathFolder);
                 var command = "php " + bundleScript + " " + iosPathFolder;
                 console.log(command);
-                shell.exec(command).output;
+                execWithLog(command);
             }
         }
     } else if(appConfig.Bundle.Direct != undefined) {
@@ -761,12 +791,10 @@ function copyQConfig(appConfig, platforms) {
                 fs_extra.writeJsonSync(path.join(iosResourcePath, configFilename), config)
                 var projectPath = path.join(pathFolder, '/platforms/ios/', appConfig.name+'.xcodeproj/project.pbxproj');
                 var proj = new xcode.project(projectPath);
-
-                proj.parse(function (err) {
-                    proj.addResourceFile(configFilename);
-                    fs.writeFileSync(projectPath, proj.writeSync());
-                    console.log('new project written');
-                });
+                var proj = new xcode.project(projectPath);
+                proj = proj.parseSync();
+                proj.addResourceFile(configFilename);
+                fs.writeFileSync(projectPath, proj.writeSync());
             }
         }
     }
@@ -878,4 +906,483 @@ function generatePluginInstallViaPlugman(pluginOption, appDirectory) {
     }
 
     return commands
+}
+
+async function performManulaChanges(appConfig, platforms) {
+    for(platform in platforms) {
+        var pathFolder = path.join(platforms[platform])
+        if(platform == "android") {
+
+        } else {
+
+            // Add legacy build mode
+            // var legacyWorkspaceSettingsPath = path.join(pathFolder, "platforms", "ios", appConfig.name+".xcworkspace","xcshareddata","WorkspaceSettings.xcsettings");
+            // fs.writeFileSync(legacyWorkspaceSettingsPath, '<?xml version="1.0" encoding="UTF-8"?>\n'+
+            // '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n'+
+            // '<plist version="1.0">\n'+
+            // '<dict>\n'+
+            // '<key>BuildSystemType</key>\n'+
+            // '<string>Original</string>\n'+
+            // '</dict>\n'+
+            // '</plist>');
+
+            // var userLegacyWorkspaceSettingsPath = path.join(pathFolder, "platforms", "ios", appConfig.name+".xcworkspace","xcuserdata",require("os").userInfo().username+".xcuserdatad","WorkspaceSettings.xcsettings");
+            // if (fs.existsSync(userLegacyWorkspaceSettingsPath)) {
+            //     fs.writeFileSync(userLegacyWorkspaceSettingsPath, '<?xml version="1.0" encoding="UTF-8"?>\n'+
+            //     '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n'+
+            //     '<plist version="1.0">\n'+
+            //     '<dict>\n'+
+            //         '<key>BuildLocationStyle</key>\n'+
+            //         '<string>UseAppPreferences</string>\n'+
+            //         '<key>CustomBuildLocationType</key>\n'+
+            //         '<string>RelativeToDerivedData</string>\n'+
+            //         '<key>DerivedDataLocationStyle</key>\n'+
+            //         '<string>Default</string>\n'+
+            //         '<key>EnabledFullIndexStoreVisibility</key>\n'+
+            //         '<false/>\n'+
+            //         '<key>IssueFilterStyle</key>\n'+
+            //         '<string>ShowActiveSchemeOnly</string>\n'+
+            //         '<key>LiveSourceIssuesEnabled</key>\n'+
+            //         '<true/>\n'+
+            //     '</dict>\n'+
+            //     '</plist>')
+            // }
+
+            // Run pod install
+            console.log("Pod install");
+            var podfilePath = path.join(pathFolder, "platforms", "ios");
+            execWithLog("cd "+podfilePath+" && pwd && pod install");
+
+            // Add GoogleService-Info.plist file
+            var projectName = appConfig.name;
+            var googleServicePath = path.join(pathFolder, "platforms", "ios","GoogleService-Info.plist");
+            var projectPath = path.join(pathFolder, "platforms", "ios", projectName+".xcodeproj","project.pbxproj");
+            var proj = new xcode.project(projectPath);
+            proj = proj.parseSync();
+            proj.addResourceFile(googleServicePath);
+            fs.writeFileSync(projectPath, proj.writeSync());
+            
+
+            // Add CodeSign to Release
+            var proj = new xcode.project(projectPath);
+            proj = proj.parseSync();
+            var udid = proj.getFirstTarget().uuid
+            var pbxBuildConfigurationSection = proj.pbxXCBuildConfigurationSection()
+            for (key in pbxBuildConfigurationSection){
+                var newKey = key;
+                if(pbxBuildConfigurationSection[key].name == "Release") {
+                    pbxBuildConfigurationSection[key].buildSettings['CODE_SIGN_IDENTITY'] = "\"iPhone Developer\"";
+                    break;
+                }
+            }
+            fs.writeFileSync(projectPath, proj.writeSync());
+
+            var proj = new xcode.project(projectPath);
+            proj = proj.parseSync();
+            // Modify project structure to support automatic_code_signing fastlane plugin
+            var ROOT_DIR = pathFolder;
+            if(ROOT_DIR.substr(0, 1) === '/' && fs.existsSync(ROOT_DIR + "/platforms/ios")) {
+                var srcFile = path.join(ROOT_DIR, "platforms", "ios",projectName+".xcodeproj","project.pbxproj");
+                var projectPbxproj = fs.readFileSync(srcFile, "utf8");
+            
+                if(projectPbxproj.indexOf("TargetAttributes") === -1) {
+                    console.log("Adding TargetAttributes to pbxproj");
+                    var udid = proj.getFirstTarget().uuid
+                    var pbxBuildConfigurationSection = proj.pbxXCBuildConfigurationSection()
+            
+                    // var targetAttributes = "\n\t\t\t\tTargetAttributes = {\n\t\t\t\t\t1D6058900D05DD3D006BFB54 = {\n\t\t\t\t\t\tDevelopmentTeam = F72EKUASP5;\n\t\t\t\t\t\tSystemCapabilities = {\n\t\t\t\t\t\t\tcom.apple.Push = {\n\t\t\t\t\t\t\t\tenabled = 1;\n\t\t\t\t\t\t\t};\n\t\t\t\t\t\t};\n\t\t\t\t\t};\n\t\t\t\t};";
+                    var targetAttributes = "\n\t\t\t\tTargetAttributes = {\n\t\t\t\t\t"+udid+" = {\n\t\t\t\t\t\tDevelopmentTeam = "+appConfig.signing.ios.team_id+";\n\t\t\t\t\t\t\n\t\t\t\t\tProvisioningStyle = Automatic;\n\t\t\t\t\t\t\n\t\t\t\t\t};\n\t\t\t\t};";
+                
+
+                    var searchString = "LastUpgradeCheck = 510;";
+                    var lastUpgradeCheckIndex = projectPbxproj.indexOf(searchString);
+            
+                    projectPbxproj = projectPbxproj.substr(0, lastUpgradeCheckIndex + searchString.length) + targetAttributes + projectPbxproj.substr(lastUpgradeCheckIndex + searchString.length);
+                }
+            
+                fs.writeFileSync(srcFile, projectPbxproj);
+            }
+
+            // Add Targer For Screenshot Generator
+
+            var fastlaneFolderPath = path.join(pathFolder, "platforms", "ios","QFastlaneUITests");
+            mkDir(fastlaneFolderPath);
+
+            // Write Info.plist
+            var fastlaneInfoPlist = path.join(fastlaneFolderPath,"Info.plist")
+            fs.writeFileSync(fastlaneInfoPlist, '<?xml version="1.0" encoding="UTF-8"?>\n'+
+            '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n'+
+            '<plist version="1.0">\n'+
+            '<dict>\n'+
+            '<key>CFBundleDevelopmentRegion</key>\n'+
+            '<string>$(DEVELOPMENT_LANGUAGE)</string>\n'+
+            '<key>CFBundleExecutable</key>\n'+
+            '<string>$(EXECUTABLE_NAME)</string>\n'+
+            '<key>CFBundleIdentifier</key>\n'+
+            '<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>\n'+
+            '<key>CFBundleInfoDictionaryVersion</key>\n'+
+            '<string>6.0</string>\n'+
+            '<key>CFBundleName</key>\n'+
+            '<string>$(PRODUCT_NAME)</string>\n'+
+            '<key>CFBundlePackageType</key>\n'+
+            '<string>BNDL</string>\n'+
+            '<key>CFBundleShortVersionString</key>\n'+
+            '<string>1.0</string>\n'+
+            '<key>CFBundleVersion</key>\n'+
+            '<string>1</string>\n'+
+            '</dict>\n'+
+            '</plist>\n');
+            // proj.addResourceFile(fastlaneInfoPlist);
+
+            // Rename QFastlaneUITests_example
+            var proj = new xcode.project(projectPath);
+            proj = proj.parseSync();
+            var templateQFastlaneUITest = path.join(fastlaneFolderPath,"QFastlaneUITests_example.swift")
+            var qFastlaneUITest = path.join(fastlaneFolderPath,"QFastlaneUITests.swift")
+            shell.exec("mv "+templateQFastlaneUITest+" "+qFastlaneUITest)
+
+            // var qFastlaneUITestRef = proj.addSourceFile(qFastlaneUITest);
+            var qFastlaneUITestRef = addBuildFile(proj,qFastlaneUITest);
+            
+            var snapshotHelper = path.join(fastlaneFolderPath,"SnapshotHelper.swift")
+            var snapshotHelperRef = addBuildFile(proj,snapshotHelper);
+
+            var fastlaneGroup = proj.addPbxGroup([
+                fastlaneInfoPlist,
+                qFastlaneUITest,
+                snapshotHelper
+            ],"QFastlaneUITests","QFastlaneUITests");
+
+            // var key = proj.pbxCreateGroupWithType("CustomTemplate", undefined, 'CustomTemplate')
+            var groups = proj.getPBXObject("PBXGroup");
+            var groupKey = undefined;
+            for (key in groups) {
+                if ('CustomTemplate' == groups[key].name) {
+                    groupKey = key
+                    var customGroup = groups[key]
+                }
+            }
+    
+            proj.addToPbxGroup(fastlaneGroup.uuid, groupKey);
+
+            // proj.addTarget("QFastlaneUITests", "ui_testing","QFastlaneUITests");
+            files = [qFastlaneUITestRef.uuid, snapshotHelperRef.uuid];//
+            var uiTarget = addUITestTarget(proj,"QFastlaneUITests","QFastlaneUITests", files);
+
+            // Add to workspace
+            var workspacePath = path.join(pathFolder, "platforms", "ios", projectName+".xcworkspace", "xcshareddata","xcschemes",projectName+".xcscheme");
+            var workspaceContent = readXmlFile(workspacePath)
+
+            var testable = {}
+
+            var testableReference = {};
+            testableReference['$'] = {skipped: "NO"};
+            var buildableReference = {}
+            buildableReference['$'] = {
+                BlueprintIdentifier: uiTarget.uuid,
+                BlueprintName:"QFastlaneUITests",
+                BuildableIdentifier: "primary",
+                BuildableName:"QFastlaneUITests.xctest",
+                ReferencedContainer:"container:"+projectName+".xcodeproj"
+            };
+            testableReference['BuildableReference'] = [buildableReference];
+
+            testable["TestableReference"] = testableReference
+
+            workspaceContent.Scheme.TestAction[0].Testables.push(
+                testable
+            )
+            writeXmlFile(workspacePath, workspaceContent);
+
+            
+            fs.writeFileSync(projectPath, proj.writeSync());
+        }
+    }
+}
+
+function addBuildFile(project, path, opt, group) {
+        var file;
+        if (group) {
+            file = project.addFile(path, group, opt);
+        }
+        else {
+            file = project.addPluginFile(path, opt);
+        }
+    
+        if (!file) return false;
+    
+        file.target = opt ? opt.target : undefined;
+        file.uuid = project.generateUuid();
+    
+        project.addToPbxBuildFileSection(file);        // PBXBuildFile
+        // this.addToPbxSourcesBuildPhase(file);       // PBXSourcesBuildPhase
+    
+        return file;
+}
+
+function addUITestTarget(project, name, subfolder, files) {
+        // Setup uuid and name of new target
+        var targetUuid = project.generateUuid(),
+            targetType = "ui_testing",
+            targetSubfolder = subfolder || name,
+            targetName = name.trim();
+
+        var productType = 'com.apple.product-type.bundle.ui-testing'
+    
+        // Check type against list of allowed target types
+        if (!targetName) {
+            throw new Error("Target name missing.");
+        }
+    
+        // Check type against list of allowed target types
+        if (!targetType) {
+            throw new Error("Target type missing.");
+        }
+    
+        // Build Configuration: Create
+        var buildConfigurationsList = [
+            {
+                isa: 'XCBuildConfiguration',
+                buildSettings: {
+                    ALWAYS_SEARCH_USER_PATHS: 'NO',
+				    CLANG_ANALYZER_NONNULL: 'YES',
+				    CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION: 'YES_AGGRESSIVE',
+				    CLANG_CXX_LANGUAGE_STANDARD: '"gnu++14"',
+				    CLANG_CXX_LIBRARY: '"libc++"',
+				    CLANG_ENABLE_OBJC_WEAK: 'YES',
+				    CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING: 'YES',
+				    CLANG_WARN_COMMA: 'YES',
+				    CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS: 'YES',
+				    CLANG_WARN_DIRECT_OBJC_ISA_USAGE: 'YES_ERROR',
+				    CLANG_WARN_DOCUMENTATION_COMMENTS: 'YES',
+				    CLANG_WARN_INFINITE_RECURSION: 'YES',
+				    CLANG_WARN_NON_LITERAL_NULL_CONVERSION: 'YES',
+				    CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF: 'YES',
+				    CLANG_WARN_OBJC_LITERAL_CONVERSION: 'YES',
+				    CLANG_WARN_OBJC_ROOT_CLASS: 'YES_ERROR',
+				    CLANG_WARN_RANGE_LOOP_ANALYSIS: 'YES',
+				    CLANG_WARN_STRICT_PROTOTYPES: 'YES',
+				    CLANG_WARN_SUSPICIOUS_MOVE: 'YES',
+				    CLANG_WARN_UNGUARDED_AVAILABILITY: 'YES_AGGRESSIVE',
+				    CLANG_WARN_UNREACHABLE_CODE: 'YES',
+				    CODE_SIGN_IDENTITY: '"iPhone Developer"',
+				    CODE_SIGN_STYLE: 'Automatic',
+				    COPY_PHASE_STRIP: 'NO',
+				    DEBUG_INFORMATION_FORMAT: 'dwarf',
+				    DEVELOPMENT_TEAM: 'U6J99X5R3S',
+				    ENABLE_STRICT_OBJC_MSGSEND: 'YES',
+				    ENABLE_TESTABILITY: 'YES',
+				    GCC_C_LANGUAGE_STANDARD: 'gnu11',
+				    GCC_DYNAMIC_NO_PIC: 'NO',
+				    GCC_NO_COMMON_BLOCKS: 'YES',
+                    GCC_OPTIMIZATION_LEVEL: '0',
+                    GCC_PREPROCESSOR_DEFINITIONS: ['"DEBUG=1"', '"$(inherited)"'],
+				    GCC_WARN_64_TO_32_BIT_CONVERSION: 'YES',
+				    GCC_WARN_ABOUT_RETURN_TYPE: 'YES_ERROR',
+                    GCC_WARN_UNINITIALIZED_AUTOS: 'YES_AGGRESSIVE',
+                    INFOPLIST_FILE: path.join(targetSubfolder, 'Info.plist'),
+                    IPHONEOS_DEPLOYMENT_TARGET: '12.1',
+                    LD_RUNPATH_SEARCH_PATHS: '"$(inherited) @executable_path/Frameworks @loader_path/Frameworks"',
+				    MTL_ENABLE_DEBUG_INFO: 'INCLUDE_SOURCE',
+				    MTL_FAST_MATH: 'YES',
+                    PRODUCT_BUNDLE_IDENTIFIER: '"com.qbix.ui-test.'+targetName+'"',
+                    PRODUCT_NAME: '"$(TARGET_NAME)"',
+				    SWIFT_ACTIVE_COMPILATION_CONDITIONS: 'DEBUG',
+				    SWIFT_OPTIMIZATION_LEVEL: '"-Onone"',
+				    SWIFT_VERSION: '4.2',
+				    TARGETED_DEVICE_FAMILY: '"1,2"',
+				    TEST_TARGET_NAME : project.productName,
+                },
+                name: 'Debug'
+            },
+            {
+                isa: 'XCBuildConfiguration',
+                buildSettings: {
+                    ALWAYS_SEARCH_USER_PATHS: 'NO',
+                    CLANG_ANALYZER_NONNULL: 'YES',
+                    CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION: 'YES_AGGRESSIVE',
+                    CLANG_CXX_LANGUAGE_STANDARD: '"gnu++14"',
+                    CLANG_CXX_LIBRARY: '"libc++"',
+                    CLANG_ENABLE_OBJC_WEAK: 'YES',
+                    CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING: 'YES',
+                    CLANG_WARN_COMMA: 'YES',
+                    CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS: 'YES',                        
+                    CLANG_WARN_DIRECT_OBJC_ISA_USAGE: 'YES_ERROR',
+                    CLANG_WARN_DOCUMENTATION_COMMENTS: 'YES',
+                    CLANG_WARN_INFINITE_RECURSION: 'YES',
+                    CLANG_WARN_NON_LITERAL_NULL_CONVERSION: 'YES',
+                    CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF: 'YES',
+                    CLANG_WARN_OBJC_LITERAL_CONVERSION: 'YES',
+                    CLANG_WARN_OBJC_ROOT_CLASS: 'YES_ERROR',
+                    CLANG_WARN_RANGE_LOOP_ANALYSIS: 'YES',
+                    CLANG_WARN_STRICT_PROTOTYPES: 'YES',
+                    CLANG_WARN_SUSPICIOUS_MOVE: 'YES',
+                    CLANG_WARN_UNGUARDED_AVAILABILITY: 'YES_AGGRESSIVE',
+                    CLANG_WARN_UNREACHABLE_CODE: 'YES',
+                    CODE_SIGN_IDENTITY: '"iPhone Developer"',
+                    CODE_SIGN_STYLE: 'Automatic',
+                    COPY_PHASE_STRIP: 'NO',
+                    DEBUG_INFORMATION_FORMAT: '"dwarf-with-dsym"',
+                        DEVELOPMENT_TEAM: 'U6J99X5R3S',
+                    ENABLE_NS_ASSERTIONS: 'NO',
+                    ENABLE_STRICT_OBJC_MSGSEND: 'YES',
+                    GCC_C_LANGUAGE_STANDARD: 'gnu11',                        
+                    GCC_NO_COMMON_BLOCKS: 'YES',
+                    GCC_WARN_64_TO_32_BIT_CONVERSION: 'YES',
+                    GCC_WARN_ABOUT_RETURN_TYPE: 'YES_ERROR',
+                    GCC_WARN_UNINITIALIZED_AUTOS: 'YES_AGGRESSIVE',
+                    INFOPLIST_FILE: path.join(targetSubfolder, 'Info.plist'),
+                    IPHONEOS_DEPLOYMENT_TARGET: '12.1',
+                    LD_RUNPATH_SEARCH_PATHS: '"$(inherited) @executable_path/Frameworks @loader_path/Frameworks"',
+                    MTL_ENABLE_DEBUG_INFO: 'NO',
+                    MTL_FAST_MATH: 'YES',
+                    PRODUCT_BUNDLE_IDENTIFIER: '"com.qbix.ui-test.'+targetName+'"',
+                    PRODUCT_NAME: '"$(TARGET_NAME)"',
+                    SWIFT_OPTIMIZATION_LEVEL: '"-Owholemodule"',
+                    SWIFT_VERSION: '4.2',
+                    TARGETED_DEVICE_FAMILY: '"1,2"',
+                    TEST_TARGET_NAME: project.productName,
+                    VALIDATE_PRODUCT: 'YES'
+                },
+                name: 'Release',
+            }
+        ];
+    
+        // Build Configuration: Add
+        var buildConfigurations = project.addXCConfigurationList(buildConfigurationsList, 'Release', 'Build configuration list for PBXNativeTarget "' + targetName +'"');
+    
+        // Product: Create
+        var productName = targetName,
+            productType = productType,
+            productFileType = "xctest",
+            productFile = project.addProductFile(productName+"."+productFileType, { group: 'Copy Files', 'target': targetUuid}),
+            productFileName = productFile.basename;
+    
+    
+        // Product: Add to build file list
+        project.addToPbxBuildFileSection(productFile);
+    
+        // Target: Create
+        var target = {
+                uuid: targetUuid,
+                pbxNativeTarget: {
+                    isa: 'PBXNativeTarget',
+                    buildConfigurationList: buildConfigurations.uuid,
+                    buildPhases: [],
+                    buildRules: [],
+                    dependencies: [],
+                    name: targetName,
+                    productName: targetName,
+                    productReference: productFile.fileRef,
+                    productType: '"' + productType + '"',
+                }
+        };
+    
+        // Target: Add to PBXNativeTarget section
+        project.addToPbxNativeTargetSection(target)
+    
+        // project.addToPbxFrameworksBuildPhase(file);  
+
+        var newSourceSection = createNewSection(project,"PBXSourcesBuildPhase", "Sources",files);
+        var newFrameworkSection = createNewSection(project,"PBXFrameworksBuildPhase", "Frameworks");
+        var newResourceSection = createNewSection(project,"PBXResourcesBuildPhase","Resources");
+        
+        
+    
+        var targetDependency = addTargetDependency(project, project.getFirstTarget().uuid, [project.getFirstTarget().uuid])
+        
+        target.pbxNativeTarget.buildPhases.push(newSourceSection.uuid+" /* Sources */");
+        target.pbxNativeTarget.buildPhases.push(newFrameworkSection.uuid+" /* Frameworks */");
+        target.pbxNativeTarget.buildPhases.push(newResourceSection.uuid+" /* Resources */");
+        target.pbxNativeTarget.dependencies.push(targetDependency.value+" /* PBXTargetDependency */");
+
+        // Target: Add uuid to root project
+        var newTarget = {
+            value: target.uuid,
+            comment: target.pbxNativeTarget.name
+        };
+
+        project.pbxProjectSection()[project.getFirstProject()['uuid']]['targets'].push(newTarget);
+    
+        // Return target on success
+        return target;
+}
+
+function createNewSection(project,sectionName, name, files) {
+    var frameworks = project.hash.project.objects[sectionName];
+    var rootFramework = undefined;
+    for (var key in frameworks){
+        if(key.indexOf("_comment") == -1) {
+            rootFramework = frameworks[key];
+            break;
+        }
+    }
+    var newFrameworkUuid = project.generateUuid()
+    var listOfFiles = files != undefined ? files : [];
+    var newFramework = {
+        isa:sectionName,
+        buildActionMask: rootFramework.buildActionMask,
+        files: listOfFiles,
+        runOnlyForDeploymentPostprocessing: 0
+    }
+    project.hash.project.objects[sectionName][newFrameworkUuid]= newFramework;
+    project.hash.project.objects[sectionName][newFrameworkUuid+"_comment"]= name;
+
+    return {uuid:newFrameworkUuid, section:newFramework}
+}
+
+function addTargetDependency(project, target, dependencyTargets) {
+    if (!target)
+        return undefined;
+
+    var nativeTargets = project.pbxNativeTargetSection();
+
+    if (typeof nativeTargets[target] == "undefined")
+        throw new Error("Invalid target: " + target);
+
+    for (var index = 0; index < dependencyTargets.length; index++) {
+        var dependencyTarget = dependencyTargets[index];
+        if (typeof nativeTargets[dependencyTarget] == "undefined")
+            throw new Error("Invalid target: " + dependencyTarget);
+        }
+
+    var pbxTargetDependency = 'PBXTargetDependency',
+        pbxContainerItemProxy = 'PBXContainerItemProxy',
+        pbxTargetDependencySection = project.hash.project.objects[pbxTargetDependency],
+        pbxContainerItemProxySection = project.hash.project.objects[pbxContainerItemProxy];
+
+    for (var index = 0; index < dependencyTargets.length; index++) {
+        var dependencyTargetUuid = dependencyTargets[index],
+            dependencyTargetCommentKey = require('util').format("%s_comment", dependencyTargetUuid),
+            targetDependencyUuid = project.generateUuid(),
+            targetDependencyCommentKey = require('util').format("%s_comment", targetDependencyUuid),
+            itemProxyUuid = project.generateUuid(),
+            itemProxyCommentKey = require('util').format("%s_comment", itemProxyUuid),
+            itemProxy = {
+                isa: pbxContainerItemProxy,
+                containerPortal: project.hash.project['rootObject'],
+                containerPortal_comment: project.hash.project['rootObject_comment'],
+                proxyType: 1,
+                remoteGlobalIDString: dependencyTargetUuid,
+                remoteInfo: nativeTargets[dependencyTargetUuid].name
+            },
+            targetDependency = {
+                isa: pbxTargetDependency,
+                target: dependencyTargetUuid,
+                target_comment: nativeTargets[dependencyTargetCommentKey],
+                targetProxy: itemProxyUuid,
+                targetProxy_comment: pbxContainerItemProxy
+            };
+
+        if (pbxContainerItemProxySection && pbxTargetDependencySection) {
+            pbxContainerItemProxySection[itemProxyUuid] = itemProxy;
+            pbxContainerItemProxySection[itemProxyCommentKey] = pbxContainerItemProxy;
+            pbxTargetDependencySection[targetDependencyUuid] = targetDependency;
+            pbxTargetDependencySection[targetDependencyCommentKey] = pbxTargetDependency;
+            // nativeTargets[target].dependencies.push({ value: targetDependencyUuid, comment: pbxTargetDependency })
+        }
+    }
+
+    // return { uuid: target, target: nativeTargets[target] };
+    return { value: targetDependencyUuid, comment: pbxTargetDependency }
 }

@@ -3,11 +3,13 @@
   "version": "1.0.0",
   "dependencies": {
     "bluebird": "^3.5.1",
+    "deasync": "^0.1.14",
     "fs-extra": "^5.0.0",
     "plist": "^3.0.1",
     "sharp": "^0.20.1",
     "shelljs": "^0.8.1",
     "stdio": "^0.2.7",
+    "sync": "^0.2.5",
     "xcode": "^1.0.0",
     "xml2js": "^0.4.19"
   }

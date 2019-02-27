@@ -18,6 +18,12 @@ default_platform(:ios)
 platform :ios do
   desc "Build release IPA"
   lane :build do
+    automatic_code_signing(
+      path: "<project_name>.xcodeproj",
+      use_automatic_signing: true,
+      team_id: "<team_id>",
+      targets: ["<project_name>"]
+    )
     build_app(scheme: "<project_name>",workspace: "<project_name>.xcworkspace",include_bitcode: true,export_xcargs: "-allowProvisioningUpdates")
   end
 
@@ -36,7 +42,7 @@ platform :ios do
   desc "Capture screenshots"
   lane :screenshots do
     build
-    capture_screenshots
+    capture_screenshots(number_of_retries: 1)
   end
 
   desc "Deploy a new version to the Apple Store"
