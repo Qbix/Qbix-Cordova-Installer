@@ -60,6 +60,8 @@ async function main() {
     var appBuildRootPath = path.join(appRootPath, "build")
 // var appDestination = path.join(appBuildRootPath, appNameForOS)
 
+    console.log(appBuildRootPath);
+
     createFolderIfNotExist(appBuildRootPath);
 
 
@@ -67,12 +69,16 @@ async function main() {
 
     for (platform in appConfig.platforms) {
         var platformAppDirectory = path.join(appBuildRootPath, appConfig.platforms[platform]);
+        console.log(platformAppDirectory);
         createFolderIfNotExist(platformAppDirectory);
         platforms[appConfig.platforms[platform]] = path.join(platformAppDirectory, appNameForOS)
     }
 
+    console.log(FULL_CREATE);
+
     if (FULL_CREATE) {
     // Add projects
+    console.log(appNameForOS);
         addProjects(appNameForOS)
 
     // setupConfig
@@ -165,7 +171,7 @@ function addProjects(appNameForOS) {
     for(platform in platforms) {
         var pathFolder = path.join(platforms[platform])
         if (!fs.existsSync(pathFolder)) {
-            shell.exec('cordova create ' + pathFolder + " " + appConfig.packageId[platform] + " " + appNameForOS).output;
+            execWithLog('cordova create ' + pathFolder + " " + appConfig.packageId[platform] + " " + appNameForOS);
         }
     }
 }
@@ -802,6 +808,7 @@ function copyQConfig(appConfig, platforms) {
 
 function createFolderIfNotExist(pathFolder) {
     if (!fs.existsSync(pathFolder)){
+        console.log("MkDir "+pathFolder);
         fs.mkdirSync(pathFolder);
     }
 }
