@@ -12,7 +12,7 @@ platform :android do
         gradle(task: "clean assembleRelease")
   end
 
-  desc "Release to Google Play"
+  desc "Release to Google Play[Build,Screenshots,Deploy]"
   lane :release do
       build
       screenshots
@@ -24,14 +24,9 @@ platform :android do
     deploy
   end
 
-  desc "Deploy a new version to the Google Play"
-  lane :deploy do
-    gradle(task: "clean assembleRelease")
-    upload_to_play_store
-  end
-
   desc "Capture screenshots. Please run emulator before run"
   lane :screenshots do
+    gradle(task: "clean")
     build_android_app(
       task: 'assemble',
       build_type: 'Debug'
@@ -48,5 +43,13 @@ platform :android do
       tests_apk_path: "app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk"
     )
   end
+
+  desc "Deploy a new version to the Google Play"
+  lane :deploy do
+    gradle(task: "clean assembleRelease")
+    upload_to_play_store
+  end
+
+  
 
 end

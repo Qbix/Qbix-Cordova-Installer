@@ -27,7 +27,7 @@ platform :ios do
     build_app(scheme: "<project_name>",workspace: "<project_name>.xcworkspace",include_bitcode: true,export_xcargs: "-allowProvisioningUpdates")
   end
 
-  desc "Release to Apple Store"
+  desc "Release to Apple Store[Build,Screenshots,Deploy]"
   lane :release do
       build
       screenshots

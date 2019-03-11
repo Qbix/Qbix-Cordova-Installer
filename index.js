@@ -146,6 +146,7 @@ function cordovaBuild(BUILD_AFTER,platforms) {
 }
 
 function execWithLog(command) {
+    console.log("Running "+command);
     console.log(shell.exec(command).stdout);
 }
 
@@ -625,6 +626,7 @@ async function generateSplashscreens(appConfig, appRootPath) {
            }
         }
     }
+    removeDir(tempSourceDir);
 }
 
 

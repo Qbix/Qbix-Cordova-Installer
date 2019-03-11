@@ -20,6 +20,7 @@ var ops = stdio.getopt({
 var translateScriptPath = "MyApp/scripts/Q/translate.php";
 var sourceLanguage =  "en-US";
 var pathToMedatada = "build/android/{AppName}/platforms/android/fastlane/metadata/android";
+var supportLocalFile = path.join(__dirname, "mobile-store-local.json")
 
 if (ops.script) {
     translateScriptPath = ops.script;
@@ -125,7 +126,8 @@ function translateFile(pathToMedata, sourceLanguage, sourceFilename, notSupporte
     mkDir(tempOutputDir);
 
     // 4. run translate script
-    var command = "php " + translateScriptPath + " --source="+sourceLanguage+" --in="+tempSourceDir+" --out="+tempOutputDir+ " --format=google --google-format=html"
+    var command = "php " + translateScriptPath + " --source="+sourceLanguage+" --in="+tempSourceDir+" --out="+tempOutputDir+ " --format=google --google-format=html --locales="+supportLocalFile
+    console.log(command);
     shell.exec(command).output;
 
     // 5. move translated data to fastlane
@@ -147,6 +149,9 @@ function translateFile(pathToMedata, sourceLanguage, sourceFilename, notSupporte
 
         writeFile(outputFile, jsonArray.join('\n'));
     });
+
+    rmDir(tempSourceDir);
+    rmDir(tempOutputDir);
 }
 
 
