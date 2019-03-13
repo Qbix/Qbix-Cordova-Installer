@@ -41,8 +41,11 @@ platform :ios do
 
   desc "Capture screenshots"
   lane :screenshots do
-    build
-    capture_screenshots(number_of_retries: 1)
+    capture_screenshots(
+      skip_open_summary: true,
+      number_of_retries: 1,
+      reinstall_app: true
+    )
   end
 
   desc "Deploy a new version to the Apple Store"

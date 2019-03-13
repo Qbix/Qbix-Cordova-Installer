@@ -14,6 +14,9 @@ var stdio = require('stdio');
 var xcode = require('xcode');
 var sync = require('sync');
 var deasync = require('deasync');
+var imageSize = require('image-size');
+var md5 = require('md5');
+var util = require('./util.js')
 
 
 var ops = stdio.getopt({
@@ -23,7 +26,8 @@ var ops = stdio.getopt({
     'full_create': {description: 'Create app, Install plugins, Update bundle'},
     'update_plugin': {description: 'Install/Update Plugins, Update bundle'},
     'update_bundle': {description: 'Update bundle'},
-
+    'translate_metadata': {description: 'Translate metadata from en local'},
+    'capture_screenshots': {description: 'Capture screenshots through fastlane'},
 });
 
 var appConfig = undefined;
@@ -39,12 +43,16 @@ async function main() {
     var FULL_CREATE = false
     var UPDATE_PLUGIN = false
     var UPDATE_BUNDLE = false
+    var TRANSLATE_METADATA = false
+    var CAPTURE_SCREENSHOTS = false;
     var BUILD_AFTER = true
     
     if (ops.appconfig) {
         FULL_CREATE = ops.full_create;
         UPDATE_PLUGIN = ops.update_plugin;
         UPDATE_BUNDLE = ops.update_bundle;
+        TRANSLATE_METADATA = ops.translate_metadata;
+        CAPTURE_SCREENSHOTS = ops.capture_screenshots;
         phpInterpreter = ops.php;
         screengenerator = ops.screengenerator;
     }
@@ -59,8 +67,6 @@ async function main() {
     var appRootPath = path.dirname(pathToConfig)
     var appBuildRootPath = path.join(appRootPath, "build")
 // var appDestination = path.join(appBuildRootPath, appNameForOS)
-
-    console.log(appBuildRootPath);
 
     createFolderIfNotExist(appBuildRootPath);
 
@@ -130,6 +136,15 @@ async function main() {
     if (FULL_CREATE || UPDATE_PLUGIN || UPDATE_BUNDLE) {
         // Update name of app
         updateNameOfApp(appConfig, platforms)
+    }
+
+    if(TRANSLATE_METADATA) {
+        translateMetadata(appConfig, platforms);
+    }
+
+    if(CAPTURE_SCREENSHOTS) {
+        // await captureScreenshots(appConfig, platforms);
+        frameScreenshots(appConfig, platforms);
     }
 
     // performManulaChanges(appConfig, platforms)
@@ -371,6 +386,13 @@ function createDeployConfig(appConfig, platforms) {
             var snapfileContent = fs.readFileSync(path.join(fastlaneExamplePath, "Snapfile"), "utf-8");
             snapfileContent = snapfileContent.replace(/<project_name>/g, appConfig.name);
             snapfileContent = snapfileContent.replace("<screenshots>", iosScreenshots);
+            
+            var languages = "";
+            var locales = util.Local.getArrayLocale(util.Local.getLocales(appConfig.deploy.locales));
+            for(index in locales) {
+                languages += "\""+locales[index]+"\",";
+            }
+            snapfileContent = snapfileContent.replace("<languages>", languages);
             fs.writeFileSync(path.join(fastlanePath, "Snapfile"), snapfileContent)
 
             // Setup metadata
@@ -391,13 +413,259 @@ function createDeployConfig(appConfig, platforms) {
     }
 }
 
+function translateMetadata(appConfig, platforms) {
+    var translatorPath = path.join(__dirname, "translator");
+    var translatorScriptPath = path.join(translatorPath, "translator.js");
+
+    for(platform in platforms) {
+        var pathFolder = path.join(platforms[platform])
+        var sourceLanguage = "en-US";
+        var metadataPath = "";
+        if(platform == "android") {
+            metadataPath = path.join(pathFolder, "platforms","android","fastlane","metadata","android")
+        } else {
+            metadataPath = path.join(pathFolder, "platforms","ios","fastlane","metadata")
+        }
+
+        var pathToEnglishMetadta = path.join(metadataPath, sourceLanguage);
+        var ios_metadata_translations = [
+            path.join(pathToEnglishMetadta, "description.txt"),
+            path.join(pathToEnglishMetadta, "keywords.txt"),
+            path.join(pathToEnglishMetadta, "promotional_text.txt"),
+            path.join(pathToEnglishMetadta, "release_notes.txt")
+        ];
+        var android_metadata_translations = [
+            path.join(pathToEnglishMetadta, "full_description.txt"),
+            path.join(pathToEnglishMetadta, "short_description.txt")
+        ];
+
+        var locales = util.Local.getArrayLocale(util.Local.getLocales(appConfig.deploy.locales));
+
+        var filesToTranslate = [];
+        if(platform == "android") {
+            filesToTranslate = android_metadata_translations;
+        } else if(platform == "ios") {
+            filesToTranslate = ios_metadata_translations;
+        }
+
+        for(index in filesToTranslate) {
+            // Read file content
+            var fileName =  filesToTranslate[index];
+            fileName = fileName.split('/').pop()
+            var pathToFile = path.join(metadataPath, sourceLanguage, fileName)
+            var content = util.File.readFileSync(pathToFile);
+
+            // Translate for each locale
+            for(local in locales) {
+                local = locales[local];
+                var newContent = translateText(content, sourceLanguage, local);
+
+                // Write to new file
+                var finalOutputPath = path.join(metadataPath, local)
+                if(!util.File.isExistPath(finalOutputPath)) {
+                    util.File.mkDir(finalOutputPath)
+                }
+                var outputFile = path.join(finalOutputPath, fileName)
+                util.File.writeFileSync(outputFile, newContent);
+            }
+        }
+    }
+}
+
+async function captureScreenshots(appConfig, platforms) {
+    for(platform in platforms) {
+        var pathFolder = path.join(platforms[platform])
+        var projectPath = path.join(pathFolder, "platforms", platform)
+
+        var command = "cd " + projectPath + " && fastlane "+platform+" screenshots";
+        execWithLog(command);
+        
+        if(platform == "android") {
+
+        } else {
+            var convertationRules = {
+                "2048x2730":"2048x2732"
+            }
+            var screenshotsPath = path.join(projectPath, "fastlane", "screenshots");
+            var filePromises = [];
+            var filesToRemove = [];
+
+            var directories = getDirectories(screenshotsPath)
+            for(directoryIndex in directories) {
+                var directory = directories[directoryIndex];
+                fs.readdirSync(directory).forEach(screenshot => {
+                    if(screenshot !== ".DS_Store") {
+                        var screenshotImagePath = path.join(directory, screenshot);
+                        var dimensions = imageSize(screenshotImagePath);
+                            
+                        for(convertRule in convertationRules) {
+                            var originalW = parseInt(convertRule.split("x")[0], 10);
+                            var originalH = parseInt(convertRule.split("x")[1], 10);
+
+                            var newW = parseInt(convertationRules[convertRule].split("x")[0], 10);
+                            var newH = parseInt(convertationRules[convertRule].split("x")[1], 10);
+
+                            if(dimensions.width == originalW && dimensions.height == originalH) {
+                                finalScreenshotImagePath = screenshotImagePath;
+                                finalScreenshotImagePath = finalScreenshotImagePath.replace(".png",".jpeg");
+                                filePromises.push(sharp(screenshotImagePath).jpeg().resize(newW, newH).toFile(finalScreenshotImagePath));                                filesToRemove.push(screenshotImagePath);
+                            }
+                        }
+                    }
+                });
+            }
+            await syncPromises(filePromises);
+
+            for(file in filesToRemove) {
+                fs.unlinkSync(filesToRemove[file])
+            }
+        }
+    }
+}
+
+function frameScreenshots(appConfig, platforms) {
+
+    var defaultLanguage = "en-US"
+     for(platform in platforms) {
+        var pathFolder = path.join(platforms[platform])
+        var framesFolder = path.join(__dirname, "frame_template");
+
+        var projectPath = path.join(pathFolder, "platforms", platform)
+        var screenshotsPath = projectPath
+        if(platform == "android") {
+            screenshotsPath = path.join(screenshotsPath, "fastlane")
+        } else {
+            screenshotsPath = path.join(screenshotsPath, "fastlane", "screenshots")
+        }
+
+        var locals = getDirectoriesWithFiles(screenshotsPath);
+
+
+        for(index in appConfig.deploy.screenshots) {
+            var screenshotConfig = appConfig.deploy.screenshots[index];
+            var urlHash = md5(screenshotConfig.url)
+            for(local in locals) {
+                var matchedIPhoneFiles = [];
+                var matchedIPadFiles = [];
+                var files = locals[local];
+                var localBase = path.basename(local)
+                for(index in files) {
+                    var file = files[index];
+                    console.log(file);
+
+                    var filename = path.basename(file)
+                    if(filename.indexOf(urlHash) > -1 ) {
+                        if(filename.indexOf("iPhone") > -1) {
+                            matchedIPhoneFiles.push(file);
+                        } else if(filename.indexOf("iPad") > -1) {
+                            matchedIPadFiles.push(file);
+                        }
+                    }
+                }
+
+                for(index in matchedIPhoneFiles) {
+                    var screenshot = matchedIPhoneFiles[index];
+                    var final_screenshot = screenshot.replace(urlHash, md5(urlHash));
+
+                    var screenshot_ext = path.extname(screenshot);
+                    screenshot_ext = screenshot_ext.replace(".","");
+                    var template_image = screenshotConfig.frame.template_image;
+                    var template_config = screenshotConfig.frame.template_config;
+
+                    if(screenshotConfig.frame.template_name != undefined) {
+                        var templatePath = path.join(framesFolder, screenshotConfig.frame.template_name);
+                        console.log(templatePath);
+                        if(util.File.isDir(templatePath)) {
+                            template_image = path.join(templatePath, "template.png");
+                            template_config = path.join(templatePath, "config.json");
+                        }
+                    }
+                    if(screenshot_ext == "jpeg") {
+                        screenshot_ext = "jpg";
+                        final_screenshot = final_screenshot.replace(".jpeg",".jpg");
+                    }
+
+                    var command = phpInterpreter+" "+screengenerator
+                    + " -t \""+template_image+"\""
+                    + " -x \""+template_config+"\""
+                    + " -r "+screenshot_ext
+                    + " -c \""+screenshotConfig.frame.background_color+"\"" 
+                    + " -s \""+screenshot+"\""
+                    + " -d \""+final_screenshot+"\"";
+
+                    if(screenshotConfig.frame.text != undefined) {
+                        var text = translateText(screenshotConfig.frame.text, defaultLanguage, localBase)
+                        command += " -f \""+text+"\""
+
+                        var text_color = "#ffffff";
+                        if(screenshotConfig.frame.text_color != undefined) {
+                            text_color = screenshotConfig.frame.text_color;
+                        }
+                        command += " -a \""+text_color+"\"";
+                    }
+
+                    execWithLog(command);
+
+                    // Remove original file
+                    // fs.unlinkSync(screenshot)
+                }
+            }
+        }
+    }
+}
+
+function translateText(content, languageFrom, languageTo) {
+    var translateQScriptPath = appConfig.deploy.translateQScript;
+    // 0. Convert content to KV
+    var file2json = {};
+    var contentLines = content.split(/\r?\n/)
+    for(var i = 0; i < contentLines.length;i++){
+        file2json[i] = contentLines[i];
+    }
+
+    // 1. generating languageToFile
+    var language_to_file_config = path.join(__dirname, "supported_locales.json");
+    util.File.writeFileSync(language_to_file_config, JSON.stringify(util.Local.getLocaleFromArray([languageTo])));
+
+    // 2. Write this file in temp source folder
+    var tempSourceDir = path.join(__dirname, "tmp_translate_in");
+    util.File.rmDir(tempSourceDir);
+    util.File.mkDir(tempSourceDir);
+    util.File.writeFileSync(path.join(tempSourceDir, languageFrom+".json"), JSON.stringify(file2json, null, 2));
+
+    // 3. Create output folder
+    var tempOutputDir = path.join(__dirname, "tmp_translate_output");
+    util.File.rmDir(tempOutputDir);
+    util.File.mkDir(tempOutputDir);
+
+    // 4. run translate script
+    var command = phpInterpreter+" " + translateQScriptPath 
+    +" --source="+languageFrom
+    +" --in="+tempSourceDir
+    +" --out="+tempOutputDir
+    +" --format=google --google-format=html"
+    +" --locales="+language_to_file_config
+    execWithLog(command);
+
+    // 5. move translated data to fastlane
+    var translatedText = "";
+    fs.readdirSync(tempOutputDir).forEach(filename => {
+        var lang = filename.split(".")[0];
+        filepath = path.join(tempOutputDir, filename)
+        var jsonArray = JSON.parse(util.File.readFileSync(filepath))
+        translatedText = jsonArray.join('\n')
+    });
+
+    util.File.rmFile(language_to_file_config)
+
+    util.File.rmDir(tempSourceDir);
+    util.File.rmDir(tempOutputDir);
+    return translatedText;
+}
+
 function updateNameOfApp(appConfig, platforms) {
     for(platform in platforms) {
         var pathFolder = path.join(platforms[platform])
-
-        // var config = readXmlFile(path.join(pathFolder, "config.xml"))
-        // config.widget.name = appConfig.displayName;
-        // writeXmlFile(path.join(pathFolder, "config.xml"), config);
 
         if(platform == "android") {
             var stringFilePath = path.join(pathFolder, "platforms", "android", "app", "src", "main", "res", "values", "strings.xml")
@@ -491,8 +759,8 @@ async function copyIcons(platforms, appRootPath) {
 
         var platformPath = path.join(pathToResource, "icon", platform);
 
-        removeDir(path.join(pathToResource, "icon"))
-        mkDir(path.join(platformPath))
+        util.File.rmDir(path.join(pathToResource, "icon"))
+        util.File.mkDir(path.join(platformPath))
 
         var filePromises = [];
         if(platform == "android") {
@@ -514,7 +782,7 @@ async function copyIcons(platforms, appRootPath) {
 
         await syncPromises(filePromises);
 
-        removeDir(path.join(pathToResource, "screen"))
+        util.File.rmDir(path.join(pathToResource, "screen"))
         copyRecursiveSync(path.join(appRootPath, "screen"), pathToResource)
 
         var config = readXmlFile(path.join(pathFolder, "config.xml"))
@@ -568,8 +836,8 @@ async function generateSplashscreens(appConfig, appRootPath) {
     }
 
     var tempSourceDir = path.join(__dirname, "tmp_screenshot_in");
-    removeDir(tempSourceDir);
-    mkDir(tempSourceDir);
+    util.File.rmDir(tempSourceDir);
+    util.File.mkDir(tempSourceDir);
 
     for(platform in platforms) {
         var pathFolder = path.join(platforms[platform])
@@ -626,10 +894,8 @@ async function generateSplashscreens(appConfig, appRootPath) {
            }
         }
     }
-    removeDir(tempSourceDir);
+    util.File.rmDir(tempSourceDir);
 }
-
-
 
 function copyIOSSplashscreens() {
     for(platform in platforms) {
@@ -663,14 +929,6 @@ function renameFiles(pathFolder, renameMap) {
                 shell.exec("mv " + path.join(pathFolder,file) + " " + path.join(pathFolder,renameMap[file]));
             }
     });
-}
-
-function removeDir(src) {
-    shell.exec("rm -r "+ src);
-}
-
-function mkDir(src) {
-    shell.exec("mkdir -p "+ src);
 }
 
 function copyRecursiveSync(src, dest) {
@@ -753,24 +1011,24 @@ function createBundle(appConfig, platforms) {
             shell.exec("pwd").output;
             if(appConfig.Bundle.Direct.type =="git") {
                 var tempFolder = path.join(pathFolder, "tmp");
-                removeDir(tempFolder)
-                removeDir(pathFolder+"/*")
+                util.File.rmDir(tempFolder)
+                util.File.rmDir(pathFolder+"/*")
                 var command = "git clone " + ((appConfig.Bundle.Direct.branch !== undefined) ? " -b "+appConfig.Bundle.Direct.branch+" ":" -b master ")+ createGitPullPath(appConfig.Bundle.Direct.url, appConfig.Bundle.Direct.login, appConfig.Bundle.Direct.password, appConfig.Bundle.Direct.branch) + " "+tempFolder
                 console.log(command);
                 shell.exec(command)
-                removeDir(path.join(tempFolder, ".git"))
+                util.File.rmDir(path.join(tempFolder, ".git"))
                 shell.exec("cp -r -v "+tempFolder+"/* "+pathFolder);
-                removeDir(tempFolder)
+                util.File.rmDir(tempFolder)
                 // shell.exec("mv -f -v "+tempFolder+" "+pathFolder);
             } else if(appConfig.Bundle.Direct.type =="hg") {
                 var tempFolder = path.join(pathFolder, "tmp");
-                removeDir(tempFolder)
+                util.File.rmDir(tempFolder)
                 var command = "hg clone "+createHgPullPath(appConfig.Bundle.Direct.url, appConfig.Bundle.Direct.login, appConfig.Bundle.Direct.password)+" "+((appConfig.Bundle.Direct.branch !== undefined) ? " -r "+appConfig.Bundle.Direct.branch+" ":" -r master ")+" "+tempFolder
                 console.log(command);
                 shell.exec(command)
-                removeDir(path.join(tempFolder, ".hg"))
+                util.File.rmDir(path.join(tempFolder, ".hg"))
                 shell.exec("cp -r -v "+tempFolder+"/* "+pathFolder);
-                removeDir(tempFolder)
+                util.File.rmDir(tempFolder)
             }
             console.log("Cordova folder:" +platforms[platform])
             shell.exec("cd "+platforms[platform]+" && cordova prepare");
@@ -778,9 +1036,27 @@ function createBundle(appConfig, platforms) {
     }
 }
 
+function getDirectoriesWithFiles(srcpath) {
+    var result = {};
+    var directories = fs.readdirSync(srcpath)
+            .map(file => path.join(srcpath, file))
+            .filter(path => util.File.isDir(path));
+
+    for(index in directories) {
+        var directory = directories[index];
+        var files = fs.readdirSync(directory)
+            .filter(file => file !== ".DS_Store")
+            .map(file => path.join(directory, file))
+            .filter(path => fs.statSync(path).isFile());
+
+        result[directory] = files;
+    }
+    return result;
+}
+
 function getDirectories(srcpath) {
     return fs.readdirSync(srcpath)
-            .map(file => path.join(srcpath, file)).filter(path => fs.statSync(path).isDirectory());
+            .map(file => path.join(srcpath, file)).filter(path => util.File.isDir(path));
 }
 
 function copyQConfig(appConfig, platforms) {
@@ -1015,7 +1291,7 @@ async function performManulaChanges(appConfig, platforms) {
             // Add Targer For Screenshot Generator
 
             var fastlaneFolderPath = path.join(pathFolder, "platforms", "ios","QFastlaneUITests");
-            mkDir(fastlaneFolderPath);
+            util.File.mkDir(fastlaneFolderPath);
 
             // Write Info.plist
             var fastlaneInfoPlist = path.join(fastlaneFolderPath,"Info.plist")
