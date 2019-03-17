@@ -1,3 +1,5 @@
 clear_previous_screenshots(true)
 
+locales([<languages>])
+
 launch_arguments([<screenshots_string>])

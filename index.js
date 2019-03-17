@@ -143,7 +143,7 @@ async function main() {
     }
 
     if(CAPTURE_SCREENSHOTS) {
-        // await captureScreenshots(appConfig, platforms);
+        await captureScreenshots(appConfig, platforms);
         frameScreenshots(appConfig, platforms);
     }
 
@@ -331,6 +331,11 @@ function createDeployConfig(appConfig, platforms) {
                 iosScreenshots += "\"-init_url "+screen.url+"\""
             });
         }
+        var languages = "";
+        var locales = util.Local.getArrayLocale(util.Local.getLocales(appConfig.deploy.locales));
+        for(index in locales) {
+            languages += "\""+locales[index]+"\",";
+        }
         if(platform == "android") {
             var fastlaneExamplePath = path.join(__dirname, "fastlane_templates", "android");
 
@@ -348,10 +353,12 @@ function createDeployConfig(appConfig, platforms) {
             //Copy Fastfile
             var fastfileContent = fs.readFileSync(path.join(fastlaneExamplePath, "Fastfile"), "utf-8");
             fastfileContent = fastfileContent.replace("<screenshots_array>","\""+androidScreengrabScreenshots+"\"");
+            
             fs.writeFileSync(path.join(fastlanePath, "Fastfile"), fastfileContent)
             //Copy Screengrabline
             var screengrablineContent = fs.readFileSync(path.join(fastlaneExamplePath, "Screengrabline"), "utf-8");
             screengrablineContent = screengrablineContent.replace("<screenshots_string>","\""+androidScreengrabScreenshots+"\"")
+            screengrablineContent = screengrablineContent.replace("<languages>",languages);
             fs.writeFileSync(path.join(fastlanePath, "Screengrabline"), screengrablineContent)
 
 
@@ -387,11 +394,7 @@ function createDeployConfig(appConfig, platforms) {
             snapfileContent = snapfileContent.replace(/<project_name>/g, appConfig.name);
             snapfileContent = snapfileContent.replace("<screenshots>", iosScreenshots);
             
-            var languages = "";
-            var locales = util.Local.getArrayLocale(util.Local.getLocales(appConfig.deploy.locales));
-            for(index in locales) {
-                languages += "\""+locales[index]+"\",";
-            }
+            
             snapfileContent = snapfileContent.replace("<languages>", languages);
             fs.writeFileSync(path.join(fastlanePath, "Snapfile"), snapfileContent)
 
@@ -436,7 +439,7 @@ function translateMetadata(appConfig, platforms) {
         ];
         var android_metadata_translations = [
             path.join(pathToEnglishMetadta, "full_description.txt"),
-            path.join(pathToEnglishMetadta, "short_description.txt")
+            path.join(pathToEnglishMetadta, "short_description.txt"),
         ];
 
         var locales = util.Local.getArrayLocale(util.Local.getLocales(appConfig.deploy.locales));
@@ -469,6 +472,16 @@ function translateMetadata(appConfig, platforms) {
                 util.File.writeFileSync(outputFile, newContent);
             }
         }
+
+        // copy title
+        var content = util.File.readFileSync(path.join(pathToEnglishMetadta, "title.txt"));
+        for(local in locales) {
+            local = locales[local];
+            var finalOutputPath = path.join(metadataPath, local)
+            var outputFile = path.join(finalOutputPath, "title.txt")
+            util.File.writeFileSync(outputFile, content);
+        }
+
     }
 }
 
@@ -1126,12 +1139,11 @@ function copyResources(appConfig, appRootPath, platforms) {
                 if(resource.to != undefined) {
                     destinationFilePath = path.join(pathToPlatform, resource.to, path.basename(sourceFilePath));
                 }
-                // console.log("Copy "+sourceFilePath+ " TO "+destinationFilePath);
-                fs_extra.copySync(sourceFilePath, destinationFilePath);
-                // fs.createReadStream(sourceFilePath).pipe(fs.createWriteStream(destinationFilePath));
+                if(util.File.isExistPath(sourceFilePath)) {
+                    fs_extra.copySync(sourceFilePath, destinationFilePath);
+                }
             }
         }
-
     }
 }
 
