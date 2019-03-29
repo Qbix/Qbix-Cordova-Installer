@@ -116,14 +116,14 @@ async function main() {
 
     }
     if (FULL_CREATE || UPDATE_PLUGIN || UPDATE_BUNDLE) {
-        //    update metadata
+        //update metadata
         updateMetadata(appConfig, platforms);
         //create bundle
         createBundle(appConfig, platforms)
         //create config.json file for main Q plugin
         copyQConfig(appConfig, platforms);
         // Create deploy config
-        createDeployConfig(appConfig, platforms);
+        await createDeployConfig(appConfig, platforms, appRootPath);
     }
 
     cordovaBuild(BUILD_AFTER,platforms)
@@ -308,7 +308,8 @@ function updateMetadata(appConfig, platforms) {
     }
 }
 
-function createDeployConfig(appConfig, platforms) {
+async function createDeployConfig(appConfig, platforms, appRootPath) {
+    console.log("createDeployConfig")
     for(platform in platforms) {
         var pathFolder = path.join(platforms[platform], "platforms",platform)
         console.log(pathFolder);
@@ -376,6 +377,16 @@ function createDeployConfig(appConfig, platforms) {
             fs.writeFileSync(path.join(fastlaneMetadataAndroidEnPath, "short_description.txt"), appConfig.deploy.shortDescription);
             fs.writeFileSync(path.join(fastlaneMetadataAndroidEnPath, "full_description.txt"), appConfig.deploy.description);
             fs.writeFileSync(path.join(fastlaneMetadataAndroidChangelogsPath, appConfig.versions.android.code+".txt"), appConfig.deploy.release_notes);
+            
+            // Setup icon and Google Play feature
+            var fastlaneMetadataAndroidImages = path.join(fastlaneMetadataAndroidEnPath, "images");
+            createFolderIfNotExist(fastlaneMetadataAndroidImages);
+            //copy icon icon.png 512 x 512 32-bit PNG
+            var originalIconPath = path.join(appRootPath, "icon.png")
+            var promise = sharp(originalIconPath).resize(512, 512).toFile(path.join(fastlaneMetadataAndroidImages, "icon.png"))
+            await promise;
+            // Copy Google Play feature featureGraphic.png 1024 w x 500 h JPG 
+            await createImageWithCenterIcon(1024, 500, appConfig.splashscreen.background, "jpeg", originalIconPath, path.join(fastlaneMetadataAndroidImages, "featureGraphic.jpeg"));
         } else {
             var fastlaneExamplePath = path.join(__dirname, "fastlane_templates", "ios");
             //Copy Appfile
@@ -412,6 +423,18 @@ function createDeployConfig(appConfig, platforms) {
             fs.writeFileSync(path.join(fastlaneMetadataEnPath, "support_url.txt"), appConfig.deploy.support_url);
             fs.writeFileSync(path.join(fastlaneMetadataEnPath, "subtitle.txt"), appConfig.deploy.subtitle);
             fs.writeFileSync(path.join(fastlaneMetadataEnPath, "release_notes.txt"), appConfig.deploy.release_notes);
+
+            // Copy icons
+            var originalIconPath = path.join(appRootPath, "icon.png")
+            await sharp(originalIconPath).jpeg().resize(1024, 1024).toFile(path.join(fastlaneMetadataPath, "app_icon.jpeg"))
+
+            fs.writeFileSync(path.join(fastlaneMetadataPath, "copyright.txt"), appConfig.deploy.copyright);
+            var fastlaneMetadataReviewPath = path.join(fastlaneMetadataPath, "review_information");
+            createFolderIfNotExist(fastlaneMetadataReviewPath)
+            fs.writeFileSync(path.join(fastlaneMetadataReviewPath, "email_address.txt"), appConfig.deploy.review_info.email);
+            fs.writeFileSync(path.join(fastlaneMetadataReviewPath, "first_name.txt"), appConfig.deploy.review_info.first);
+            fs.writeFileSync(path.join(fastlaneMetadataReviewPath, "last_name.txt"), appConfig.deploy.review_info.last);
+            fs.writeFileSync(path.join(fastlaneMetadataReviewPath, "phone_number.txt"), appConfig.deploy.review_info.phone);
         }
     }
 }
@@ -435,7 +458,8 @@ function translateMetadata(appConfig, platforms) {
             path.join(pathToEnglishMetadta, "description.txt"),
             path.join(pathToEnglishMetadta, "keywords.txt"),
             path.join(pathToEnglishMetadta, "promotional_text.txt"),
-            path.join(pathToEnglishMetadta, "release_notes.txt")
+            path.join(pathToEnglishMetadta, "release_notes.txt"),
+            path.join(pathToEnglishMetadta, "subtitle.txt"),
         ];
         var android_metadata_translations = [
             path.join(pathToEnglishMetadta, "full_description.txt"),
@@ -474,11 +498,17 @@ function translateMetadata(appConfig, platforms) {
         }
 
         // copy title
-        var content = util.File.readFileSync(path.join(pathToEnglishMetadta, "title.txt"));
+        var filesToCopy = [];
+        var filenameOfTitle = "";
+        if(platform == "android") {
+            filenameOfTitle = "title.txt";
+        } else if(platform == "ios") {
+            filenameOfTitle = "name.txt";
+        }
         for(local in locales) {
             local = locales[local];
             var finalOutputPath = path.join(metadataPath, local)
-            var outputFile = path.join(finalOutputPath, "title.txt")
+            var outputFile = path.join(finalOutputPath, filenameOfTitle)
             util.File.writeFileSync(outputFile, content);
         }
 
@@ -848,9 +878,6 @@ async function generateSplashscreens(appConfig, appRootPath) {
         "Default-Portrait~ipad.png":"768:1024"
     }
 
-    var tempSourceDir = path.join(__dirname, "tmp_screenshot_in");
-    util.File.rmDir(tempSourceDir);
-    util.File.mkDir(tempSourceDir);
 
     for(platform in platforms) {
         var pathFolder = path.join(platforms[platform])
@@ -862,7 +889,23 @@ async function generateSplashscreens(appConfig, appRootPath) {
                var width = parseInt(iosSplashscreens[screenshot].split(":")[0], 10);
                var height = parseInt(iosSplashscreens[screenshot].split(":")[1], 10);
                
-               var templatePath = path.join(tempSourceDir, "tmp_template.png");
+               var outputCordovaPath = path.join(pathFolder, "res", "screen", "ios", name);
+               var outputIOSPath = path.join(pathFolder, "platforms", "ios", appConfig.name.replace(/ /g, '\\ '), "Images.xcassets", "LaunchImage.launchimage", name);
+                
+               await createImageWithCenterIcon(width, height, appConfig.splashscreen.background, "png", originalIconPath, outputIOSPath);
+               
+           }
+        }
+    }
+    
+}
+
+async function createImageWithCenterIcon(width, height, background, format, iconPath, outputPath) {
+        var tempSourceDir = path.join(__dirname, "tmp_screenshot_in");
+        util.File.rmDir(tempSourceDir);
+        util.File.mkDir(tempSourceDir);
+
+        var templatePath = path.join(tempSourceDir, "tmp_template.png");
                // Generate template path
                await sharp({
                     create: {
@@ -896,18 +939,13 @@ async function generateSplashscreens(appConfig, appRootPath) {
 
                 var templateConfigPath = path.join(tempSourceDir, "tmp_config.json");
                 fs.writeFileSync(templateConfigPath, JSON.stringify(templateConfig));
-
-                var outputCordovaPath = path.join(pathFolder, "res", "screen", "ios", name);
-                var outputIOSPath = path.join(pathFolder, "platforms", "ios", appConfig.name.replace(/ /g, '\\ '), "Images.xcassets", "LaunchImage.launchimage", name);
                 
-                var command = phpInterpreter+" "+screengenerator+" -t \""+templatePath+"\" -x \""+templateConfigPath+"\" -r png -c "+"\""+appConfig.splashscreen.background+"\""+" -s \""+originalIconPath+"\" -o "+width+"x"+height
-                command += " -d \""+outputIOSPath+"\"";          
+                var command = phpInterpreter+" "+screengenerator+" -t \""+templatePath+"\" -x \""+templateConfigPath+"\" -r "+format+" -c "+"\""+background+"\""+" -s \""+iconPath+"\" -o "+width+"x"+height
+                command += " -d \""+outputPath+"\"";          
                 
                 shell.exec(command);
-           }
-        }
-    }
-    util.File.rmDir(tempSourceDir);
+
+                util.File.rmDir(tempSourceDir);
 }
 
 function copyIOSSplashscreens() {

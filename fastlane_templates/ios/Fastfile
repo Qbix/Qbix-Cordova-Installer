@@ -36,6 +36,7 @@ platform :ios do
 
   desc "Release without screenshots"
   lane :release_no_screenshot do
+      build
       deploy
   end
 
