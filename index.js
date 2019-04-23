@@ -527,7 +527,8 @@ async function captureScreenshots(appConfig, platforms) {
 
         } else {
             var convertationRules = {
-                "2048x2730":"2048x2732"
+                "2048x2730":"2048x2732",
+                "1241x2688":"1242x2688"
             }
             var screenshotsPath = path.join(projectPath, "fastlane", "screenshots");
             var filePromises = [];
