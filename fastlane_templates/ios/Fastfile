@@ -16,6 +16,17 @@
 default_platform(:ios)
 
 platform :ios do
+
+  desc "Submit to Crashlytics Beta"
+  lane :beta do
+    build_app(scheme: "<project_name>",workspace: "<project_name>.xcworkspace",include_bitcode: true,export_xcargs: "-allowProvisioningUpdates")
+    crashlytics(
+      emails: "<testers>",
+      api_token: "<fabric_api_key>",
+      build_secret: "<fabric_api_secret>"
+    )
+  end
+
   desc "Build release IPA"
   lane :build do
     automatic_code_signing(

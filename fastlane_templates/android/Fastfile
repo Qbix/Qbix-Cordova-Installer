@@ -4,7 +4,11 @@ platform :android do
   desc "Submit to Crashlytics Beta"
   lane :beta do
     gradle(task: "clean assembleDebug")
-    crashlytics
+    crashlytics(
+      emails: "<testers>",
+      api_token: "<fabric_api_key>",
+      build_secret: "<fabric_api_secret>"
+    )
   end
 
   desc "Build release APK"

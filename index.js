@@ -321,17 +321,18 @@ async function createDeployConfig(appConfig, platforms, appRootPath) {
         shell.cd(fastlanePath);
 
         var androidScreengrabScreenshots = "urls ";
-        var iosScreenshots = "";
+        var iosScreenshots = "\"-init_url ";
         if(appConfig.deploy.screenshots != undefined) {
             appConfig.deploy.screenshots.forEach(function(screen) {
                 if(iosScreenshots.length > 0) {
                     androidScreengrabScreenshots += ","
-                    iosScreenshots += ","
+                    iosScreenshots += "|"
                 }
                 androidScreengrabScreenshots += screen.url
-                iosScreenshots += "\"-init_url "+screen.url+"\""
+                iosScreenshots += screen.url
             });
         }
+        iosScreenshots += "\""
         var languages = "";
         var locales = util.Local.getArrayLocale(util.Local.getLocales(appConfig.deploy.locales));
         for(index in locales) {
@@ -354,6 +355,9 @@ async function createDeployConfig(appConfig, platforms, appRootPath) {
             //Copy Fastfile
             var fastfileContent = fs.readFileSync(path.join(fastlaneExamplePath, "Fastfile"), "utf-8");
             fastfileContent = fastfileContent.replace("<screenshots_array>","\""+androidScreengrabScreenshots+"\"");
+            fastfileContent = fastfileContent.replace(/<testers>/g, appConfig.development.fabric.testers);
+            fastfileContent = fastfileContent.replace(/<fabric_api_key>/g, appConfig.development.fabric.fabric_api_key);
+            fastfileContent = fastfileContent.replace(/<fabric_api_secret>/g, appConfig.development.fabric.fabric_api_secret);
             
             fs.writeFileSync(path.join(fastlanePath, "Fastfile"), fastfileContent)
             //Copy Screengrabline
@@ -399,6 +403,10 @@ async function createDeployConfig(appConfig, platforms, appRootPath) {
             var fastfileContent = fs.readFileSync(path.join(fastlaneExamplePath, "Fastfile"), "utf-8");
             fastfileContent = fastfileContent.replace(/<project_name>/g, appConfig.name);
             fastfileContent = fastfileContent.replace(/<team_id>/g, appConfig.signing.ios.team_id);
+            fastfileContent = fastfileContent.replace(/<testers>/g, appConfig.development.fabric.testers);
+            fastfileContent = fastfileContent.replace(/<fabric_api_key>/g, appConfig.development.fabric.fabric_api_key);
+            fastfileContent = fastfileContent.replace(/<fabric_api_secret>/g, appConfig.development.fabric.fabric_api_secret);
+
             fs.writeFileSync(path.join(fastlanePath, "Fastfile"), fastfileContent)
             //Copy Snapfile
             var snapfileContent = fs.readFileSync(path.join(fastlaneExamplePath, "Snapfile"), "utf-8");
@@ -590,6 +598,7 @@ function frameScreenshots(appConfig, platforms) {
             var urlHash = md5(screenshotConfig.url)
             for(local in locals) {
                 var matchedIPhoneFiles = [];
+                var matchedIPhoneXSFiles = [];
                 var matchedIPadFiles = [];
                 var files = locals[local];
                 var localBase = path.basename(local)
@@ -599,7 +608,7 @@ function frameScreenshots(appConfig, platforms) {
 
                     var filename = path.basename(file)
                     if(filename.indexOf(urlHash) > -1 ) {
-                        if(filename.indexOf("iPhone") > -1) {
+                        if(filename.indexOf("iPhone 8 Plus") > -1 || filename.indexOf("iPhone XS Max") > -1) {
                             matchedIPhoneFiles.push(file);
                         } else if(filename.indexOf("iPad") > -1) {
                             matchedIPadFiles.push(file);
@@ -816,7 +825,7 @@ async function copyIcons(platforms, appRootPath) {
             for(iconSize in iosIcons) {
                 var size = parseInt(iosIcons[iconSize].split(":")[0], 10);
                 if(size == 1024) {
-                    filePromises.push(sharp(originalIconPath).jpeg().resize(size, size).toFile(path.join(platformPath, iconSize.replace(".png", ".jpeg"))));
+                    filePromises.push(sharp(originalIconPath).resize(size, size).flatten().toFile(path.join(platformPath, iconSize)));
                     // filePromises.push(sharp(originalIconPath).resize(size, size).background({r: 255, g: 255, b: 255, alpha: 1}).toFile(path.join(platformPath, iconSize)));
                 } else {
                     filePromises.push(sharp(originalIconPath).resize(size, size).toFile(path.join(platformPath, iconSize)));
@@ -1252,37 +1261,37 @@ async function performManulaChanges(appConfig, platforms) {
         } else {
 
             // Add legacy build mode
-            // var legacyWorkspaceSettingsPath = path.join(pathFolder, "platforms", "ios", appConfig.name+".xcworkspace","xcshareddata","WorkspaceSettings.xcsettings");
-            // fs.writeFileSync(legacyWorkspaceSettingsPath, '<?xml version="1.0" encoding="UTF-8"?>\n'+
-            // '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n'+
-            // '<plist version="1.0">\n'+
-            // '<dict>\n'+
-            // '<key>BuildSystemType</key>\n'+
-            // '<string>Original</string>\n'+
-            // '</dict>\n'+
-            // '</plist>');
+            var legacyWorkspaceSettingsPath = path.join(pathFolder, "platforms", "ios", appConfig.name+".xcworkspace","xcshareddata","WorkspaceSettings.xcsettings");
+            fs.writeFileSync(legacyWorkspaceSettingsPath, '<?xml version="1.0" encoding="UTF-8"?>\n'+
+            '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n'+
+            '<plist version="1.0">\n'+
+            '<dict>\n'+
+            '<key>BuildSystemType</key>\n'+
+            '<string>Original</string>\n'+
+            '</dict>\n'+
+            '</plist>');
 
-            // var userLegacyWorkspaceSettingsPath = path.join(pathFolder, "platforms", "ios", appConfig.name+".xcworkspace","xcuserdata",require("os").userInfo().username+".xcuserdatad","WorkspaceSettings.xcsettings");
-            // if (fs.existsSync(userLegacyWorkspaceSettingsPath)) {
-            //     fs.writeFileSync(userLegacyWorkspaceSettingsPath, '<?xml version="1.0" encoding="UTF-8"?>\n'+
-            //     '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n'+
-            //     '<plist version="1.0">\n'+
-            //     '<dict>\n'+
-            //         '<key>BuildLocationStyle</key>\n'+
-            //         '<string>UseAppPreferences</string>\n'+
-            //         '<key>CustomBuildLocationType</key>\n'+
-            //         '<string>RelativeToDerivedData</string>\n'+
-            //         '<key>DerivedDataLocationStyle</key>\n'+
-            //         '<string>Default</string>\n'+
-            //         '<key>EnabledFullIndexStoreVisibility</key>\n'+
-            //         '<false/>\n'+
-            //         '<key>IssueFilterStyle</key>\n'+
-            //         '<string>ShowActiveSchemeOnly</string>\n'+
-            //         '<key>LiveSourceIssuesEnabled</key>\n'+
-            //         '<true/>\n'+
-            //     '</dict>\n'+
-            //     '</plist>')
-            // }
+            var userLegacyWorkspaceSettingsPath = path.join(pathFolder, "platforms", "ios", appConfig.name+".xcworkspace","xcuserdata",require("os").userInfo().username+".xcuserdatad","WorkspaceSettings.xcsettings");
+            if (fs.existsSync(userLegacyWorkspaceSettingsPath)) {
+                fs.writeFileSync(userLegacyWorkspaceSettingsPath, '<?xml version="1.0" encoding="UTF-8"?>\n'+
+                '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n'+
+                '<plist version="1.0">\n'+
+                '<dict>\n'+
+                    '<key>BuildLocationStyle</key>\n'+
+                    '<string>UseAppPreferences</string>\n'+
+                    '<key>CustomBuildLocationType</key>\n'+
+                    '<string>RelativeToDerivedData</string>\n'+
+                    '<key>DerivedDataLocationStyle</key>\n'+
+                    '<string>Default</string>\n'+
+                    '<key>EnabledFullIndexStoreVisibility</key>\n'+
+                    '<false/>\n'+
+                    '<key>IssueFilterStyle</key>\n'+
+                    '<string>ShowActiveSchemeOnly</string>\n'+
+                    '<key>LiveSourceIssuesEnabled</key>\n'+
+                    '<true/>\n'+
+                '</dict>\n'+
+                '</plist>')
+            }
 
             // Run pod install
             console.log("Pod install");
@@ -1299,6 +1308,19 @@ async function performManulaChanges(appConfig, platforms) {
             fs.writeFileSync(projectPath, proj.writeSync());
             
 
+            // Add Swift 4.0
+            var proj = new xcode.project(projectPath);
+            proj = proj.parseSync();
+            var udid = proj.getFirstTarget().uuid
+            var pbxBuildConfigurationSection = proj.pbxXCBuildConfigurationSection()
+            for (key in pbxBuildConfigurationSection){
+                if(pbxBuildConfigurationSection[key] != undefined && pbxBuildConfigurationSection[key].buildSettings != undefined && pbxBuildConfigurationSection[key].buildSettings['SWIFT_VERSION'] != undefined) {
+                    pbxBuildConfigurationSection[key].buildSettings['SWIFT_VERSION'] = "4.0";
+                }
+            }
+            fs.writeFileSync(projectPath, proj.writeSync());
+
+        
             // Add CodeSign to Release
             var proj = new xcode.project(projectPath);
             proj = proj.parseSync();
@@ -1383,10 +1405,14 @@ async function performManulaChanges(appConfig, platforms) {
             var snapshotHelper = path.join(fastlaneFolderPath,"SnapshotHelper.swift")
             var snapshotHelperRef = addBuildFile(proj,snapshotHelper);
 
+            var darwinNotificationHelper = path.join(fastlaneFolderPath,"DarwinNotificationCenterBeeper.swift")
+            var darwinNotificationHelperRef = addBuildFile(proj,darwinNotificationHelper);
+
             var fastlaneGroup = proj.addPbxGroup([
                 fastlaneInfoPlist,
                 qFastlaneUITest,
-                snapshotHelper
+                snapshotHelper,
+                darwinNotificationHelper
             ],"QFastlaneUITests","QFastlaneUITests");
 
             // var key = proj.pbxCreateGroupWithType("CustomTemplate", undefined, 'CustomTemplate')
@@ -1402,7 +1428,7 @@ async function performManulaChanges(appConfig, platforms) {
             proj.addToPbxGroup(fastlaneGroup.uuid, groupKey);
 
             // proj.addTarget("QFastlaneUITests", "ui_testing","QFastlaneUITests");
-            files = [qFastlaneUITestRef.uuid, snapshotHelperRef.uuid];//
+            files = [qFastlaneUITestRef.uuid, snapshotHelperRef.uuid, darwinNotificationHelperRef.uuid];//
             var uiTarget = addUITestTarget(proj,"QFastlaneUITests","QFastlaneUITests", files);
 
             // Add to workspace
