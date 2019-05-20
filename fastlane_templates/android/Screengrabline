@@ -1,5 +1,5 @@
-clear_previous_screenshots(true)
+#clear_previous_screenshots(true)
 
-locales([<languages>])
+#locales([<languages>])
 
-launch_arguments([<screenshots_string>])
+#launch_arguments([<screenshots_string>])

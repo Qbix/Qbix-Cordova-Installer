@@ -321,12 +321,14 @@ async function createDeployConfig(appConfig, platforms, appRootPath) {
         shell.cd(fastlanePath);
 
         var androidScreengrabScreenshots = "urls ";
-        var iosScreenshots = "\"-init_url ";
+        var iosScreenshots = "";
         if(appConfig.deploy.screenshots != undefined) {
             appConfig.deploy.screenshots.forEach(function(screen) {
                 if(iosScreenshots.length > 0) {
                     androidScreengrabScreenshots += ","
                     iosScreenshots += "|"
+                } else {
+                    iosScreenshots = "\"-init_url "
                 }
                 androidScreengrabScreenshots += screen.url
                 iosScreenshots += screen.url
@@ -354,17 +356,19 @@ async function createDeployConfig(appConfig, platforms, appRootPath) {
             fs.writeFileSync(path.join(fastlanePath, "Appfile"), appfileContent)
             //Copy Fastfile
             var fastfileContent = fs.readFileSync(path.join(fastlaneExamplePath, "Fastfile"), "utf-8");
+            fastfileContent = fastfileContent.replace("<languages>",languages);
             fastfileContent = fastfileContent.replace("<screenshots_array>","\""+androidScreengrabScreenshots+"\"");
             fastfileContent = fastfileContent.replace(/<testers>/g, appConfig.development.fabric.testers);
             fastfileContent = fastfileContent.replace(/<fabric_api_key>/g, appConfig.development.fabric.fabric_api_key);
             fastfileContent = fastfileContent.replace(/<fabric_api_secret>/g, appConfig.development.fabric.fabric_api_secret);
             
             fs.writeFileSync(path.join(fastlanePath, "Fastfile"), fastfileContent)
+            
             //Copy Screengrabline
-            var screengrablineContent = fs.readFileSync(path.join(fastlaneExamplePath, "Screengrabline"), "utf-8");
-            screengrablineContent = screengrablineContent.replace("<screenshots_string>","\""+androidScreengrabScreenshots+"\"")
-            screengrablineContent = screengrablineContent.replace("<languages>",languages);
-            fs.writeFileSync(path.join(fastlanePath, "Screengrabline"), screengrablineContent)
+            // var screengrablineContent = fs.readFileSync(path.join(fastlaneExamplePath, "Screengrabline"), "utf-8");
+            // screengrablineContent = screengrablineContent.replace("<screenshots_string>","\""+androidScreengrabScreenshots+"\"")
+            // screengrablineContent = screengrablineContent.replace("<languages>",languages);
+            // fs.writeFileSync(path.join(fastlanePath, "Screengrabline"), screengrablineContent)
 
 
             // Setup metadata
