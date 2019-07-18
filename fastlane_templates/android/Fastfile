@@ -4,13 +4,14 @@ platform :android do
   desc "Submit to Crashlytics Beta"
   lane :beta do
     gradle(task: "clean assembleDebug")
-    crashlytics(
-      emails: "<testers>",
-      api_token: "<fabric_api_key>",
-      build_secret: "<fabric_api_secret>"
-    )
+    #upload_to_crashlytics
+    #upload_to_browserstack
   end
 
+  #function_upload_to_crashlytics
+
+  #function_upload_to_browserstack
+  
   desc "Build release APK"
   lane :build do
         gradle(task: "clean assembleRelease")
@@ -41,7 +42,9 @@ platform :android do
     )
     capture_android_screenshots(
       locales: [<languages>],
-      clear_previous_screenshots: true,
+      output_directory: "fastlane/metadata/raw",
+      skip_open_summary: 1,
+      # clear_previous_screenshots: true,
       launch_arguments:[<screenshots_array>],
       app_apk_path: "app/build/outputs/apk/debug/app-debug.apk",
       tests_apk_path: "app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk"

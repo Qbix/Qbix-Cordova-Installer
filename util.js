@@ -27,6 +27,11 @@ Util.File = {
 	},
 	isDir:function(src) {
     	return fs.lstatSync(src).isDirectory();
+	},
+	getDirs(path) {
+	  return fs.readdirSync(path).filter(function (file) {
+	    return fs.statSync(path+'/'+file).isDirectory();
+	  });
 	}
 }
 

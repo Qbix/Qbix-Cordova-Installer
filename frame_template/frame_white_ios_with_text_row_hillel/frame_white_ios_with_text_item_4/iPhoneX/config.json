@@ -1,0 +1,11 @@
+{
+	"screenshot":{
+		"rect":{
+			"x1":94,"y1":634,
+			"x2":1120,"y2":634,
+			"x3":94,"y3":2859,
+			"x4":1120,"y4":2859
+		}
+	},
+	"text":[{"override":false,"x":84,"y":162,"width":1072,"height":240,"alignment":"center"}]
+}

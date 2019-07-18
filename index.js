@@ -2,6 +2,7 @@
  * Created by adventis on 3/17/18.
  */
 var shell = require('shelljs');
+var shellEmulator = require('shelljs');
 var path = require('path');
 var fs = require('fs');
 var fs_extra = require('fs-extra');
@@ -22,6 +23,7 @@ var util = require('./util.js')
 var ops = stdio.getopt({
     'appconfig': {key: 'c', args: 1, mandatory: true, description: 'Full path to config file'},
     'php': {key: 'p', args: 1, mandatory: true, description: 'Full path to PHP interpreter'},
+    'node': {key: 'n', args: 1, mandatory: true, description: 'Full path to node interpreter'},
     'screengenerator': {key: 's', args: 1, mandatory: true, description: 'Full path to screengenerator'},
     'full_create': {description: 'Create app, Install plugins, Update bundle'},
     'update_plugin': {description: 'Install/Update Plugins, Update bundle'},
@@ -33,6 +35,7 @@ var ops = stdio.getopt({
 var appConfig = undefined;
 var platforms = {};
 var phpInterpreter = undefined;
+var nodeInterpreter = undefined;
 var screengenerator = undefined;
 
 main().then(result => {
@@ -54,6 +57,7 @@ async function main() {
         TRANSLATE_METADATA = ops.translate_metadata;
         CAPTURE_SCREENSHOTS = ops.capture_screenshots;
         phpInterpreter = ops.php;
+        nodeInterpreter = ops.node;
         screengenerator = ops.screengenerator;
     }
     console.log(ops);
@@ -70,7 +74,6 @@ async function main() {
 
     createFolderIfNotExist(appBuildRootPath);
 
-
 // Create separate project for each platform
 
     for (platform in appConfig.platforms) {
@@ -79,6 +82,13 @@ async function main() {
         createFolderIfNotExist(platformAppDirectory);
         platforms[appConfig.platforms[platform]] = path.join(platformAppDirectory, appNameForOS)
     }
+    
+    // updateMetadata(appConfig, platforms);
+    // return;
+    // frameScreenshots(appConfig, platforms);
+    // return;
+    // await testPerformManulaChanges(appConfig, platforms);
+    // return;
 
     console.log(FULL_CREATE);
 
@@ -126,7 +136,7 @@ async function main() {
         await createDeployConfig(appConfig, platforms, appRootPath);
     }
 
-    cordovaBuild(BUILD_AFTER,platforms)
+    // cordovaBuild(BUILD_AFTER,platforms)
 
     if (FULL_CREATE) {
         performManulaChanges(appConfig, platforms)
@@ -143,7 +153,7 @@ async function main() {
     }
 
     if(CAPTURE_SCREENSHOTS) {
-        await captureScreenshots(appConfig, platforms);
+        // await captureScreenshots(appConfig, platforms);
         frameScreenshots(appConfig, platforms);
     }
 
@@ -257,7 +267,7 @@ function setupConfig(appConfig) {
             var platformConfig = config.widget.platform[0]
 
             // Setup allow-navigation
-            platformConfig["allow-navigation"] = [{$: {href: "*"}}]
+            platformConfig["allow-navigation"] = [{$: {href: "https:*"}}, {$: {href: "http:*"}}]
 
             if(appConfig.AndroidPreferences !== undefined) {
                 platformConfig["preference"] = [];
@@ -270,7 +280,7 @@ function setupConfig(appConfig) {
             var platformConfig = config.widget.platform[1]
 
             // Setup allow-navigation
-            platformConfig["allow-navigation"] = [{$: {href: "*"}}]
+            platformConfig["allow-navigation"] = [{$: {href: "https:*"}}, {$: {href: "http:*"}}]
 
             // Setup permission usage description for ios
             if(appConfig.iOSParametersInfoPlist !== undefined) {
@@ -298,12 +308,33 @@ function updateMetadata(appConfig, platforms) {
     for(platform in platforms) {
         var pathFolder = path.join(platforms[platform])
         var config = readXmlFile(path.join(pathFolder, "config.xml"))
+        
         config.widget['$'].version = appConfig.versions[platform].version
         if(platform == "android") {
             config.widget['$']["android-versionCode"] = appConfig.versions[platform].code;
         } else {
             config.widget['$']["ios-CFBundleVersion"] = appConfig.versions[platform].code;
         }
+
+        var aNavigationUrlSchema = appConfig.openUrlScheme+":*";
+        if(config.widget['allow-navigation'] != undefined) {
+            var isFind = false;
+            for(index in config.widget['allow-navigation']) {
+                if(config.widget['allow-navigation'][index]['$'].href == aNavigationUrlSchema) {
+                    isFind = true;
+                    break;
+                }
+            }
+
+            if(!isFind) {
+                config.widget['allow-navigation'].push({'$': {href: aNavigationUrlSchema}});
+            }
+        } else {
+            config.widget['allow-navigation'] = [
+                {'$': {href: aNavigationUrlSchema}}
+            ]
+        }
+
         writeXmlFile(path.join(pathFolder, "config.xml"), config);
     }
 }
@@ -336,10 +367,12 @@ async function createDeployConfig(appConfig, platforms, appRootPath) {
         }
         iosScreenshots += "\""
         var languages = "";
-        var locales = util.Local.getArrayLocale(util.Local.getLocales(appConfig.deploy.locales));
+        // var locales = util.Local.getArrayLocale(util.Local.getLocales(appConfig.deploy.locales));
+        var locales = util.Local.getArrayLocale(appConfig.deploy.locales);
         for(index in locales) {
             languages += "\""+locales[index]+"\",";
         }
+
         if(platform == "android") {
             var fastlaneExamplePath = path.join(__dirname, "fastlane_templates", "android");
 
@@ -358,9 +391,36 @@ async function createDeployConfig(appConfig, platforms, appRootPath) {
             var fastfileContent = fs.readFileSync(path.join(fastlaneExamplePath, "Fastfile"), "utf-8");
             fastfileContent = fastfileContent.replace("<languages>",languages);
             fastfileContent = fastfileContent.replace("<screenshots_array>","\""+androidScreengrabScreenshots+"\"");
-            fastfileContent = fastfileContent.replace(/<testers>/g, appConfig.development.fabric.testers);
-            fastfileContent = fastfileContent.replace(/<fabric_api_key>/g, appConfig.development.fabric.fabric_api_key);
-            fastfileContent = fastfileContent.replace(/<fabric_api_secret>/g, appConfig.development.fabric.fabric_api_secret);
+
+            if(appConfig.development.fabric != undefined) {
+                fastfileContent = fastfileContent.replace(/#upload_to_crashlytics/g, "upload_to_crashlytics");
+                var crashlyticsFunction = "desc \"Upload to Crashlytics\"\n \
+                        lane :upload_to_crashlytics do\n \
+                        crashlytics(\n \
+                            emails: \""+appConfig.development.fabric.testers+"\",\n \
+                            api_token: \""+appConfig.development.fabric.fabric_api_key+"\",\n \
+                            build_secret: \""+appConfig.development.fabric.fabric_api_secret+"\"\n \
+                        )\n \
+                    end\n"
+                fastfileContent=fastfileContent.replace(/#function_upload_to_crashlytics/g,crashlyticsFunction);
+            }
+
+            if(appConfig.development.browserstack != undefined) {
+                fastfileContent = fastfileContent.replace(/#upload_to_browserstack/g, "upload_to_browserstack");
+                var browserstackFunction = "desc \"Upload to Browserstack\"\n \
+                        lane :upload_to_browserstack do\n \
+                        upload_to_browserstack_app_live(\n \
+                            browserstack_username: \""+appConfig.development.browserstack.username+"\",\n \
+                            browserstack_access_key: \""+appConfig.development.browserstack.access_key+"\",\n \
+                        )\n \
+                    end\n"
+                fastfileContent=fastfileContent.replace(/#function_upload_to_browserstack/g,browserstackFunction);
+            }
+
+
+            // fastfileContent = fastfileContent.replace(/<testers>/g, appConfig.development.fabric.testers);
+            // fastfileContent = fastfileContent.replace(/<fabric_api_key>/g, appConfig.development.fabric.fabric_api_key);
+            // fastfileContent = fastfileContent.replace(/<fabric_api_secret>/g, appConfig.development.fabric.fabric_api_secret);
             
             fs.writeFileSync(path.join(fastlanePath, "Fastfile"), fastfileContent)
             
@@ -407,9 +467,31 @@ async function createDeployConfig(appConfig, platforms, appRootPath) {
             var fastfileContent = fs.readFileSync(path.join(fastlaneExamplePath, "Fastfile"), "utf-8");
             fastfileContent = fastfileContent.replace(/<project_name>/g, appConfig.name);
             fastfileContent = fastfileContent.replace(/<team_id>/g, appConfig.signing.ios.team_id);
-            fastfileContent = fastfileContent.replace(/<testers>/g, appConfig.development.fabric.testers);
-            fastfileContent = fastfileContent.replace(/<fabric_api_key>/g, appConfig.development.fabric.fabric_api_key);
-            fastfileContent = fastfileContent.replace(/<fabric_api_secret>/g, appConfig.development.fabric.fabric_api_secret);
+
+            if(appConfig.development.fabric != undefined) {
+                fastfileContent = fastfileContent.replace(/#upload_to_crashlytics/g, "upload_to_crashlytics");
+                var crashlyticsFunction = "desc \"Upload to Crashlytics\"\n \
+                        lane :upload_to_crashlytics do\n \
+                        crashlytics(\n \
+                            emails: \""+appConfig.development.fabric.testers+"\",\n \
+                            api_token: \""+appConfig.development.fabric.fabric_api_key+"\",\n \
+                            build_secret: \""+appConfig.development.fabric.fabric_api_secret+"\"\n \
+                        )\n \
+                    end\n"
+                fastfileContent = fastfileContent.replace(/#function_upload_to_crashlytics/g,crashlyticsFunction);
+            }
+
+            if(appConfig.development.browserstack != undefined) {
+                fastfileContent = fastfileContent.replace(/#upload_to_browserstack/g, "upload_to_browserstack");
+                var browserstackFunction = "desc \"Upload to Browserstack\"\n \
+                        lane :upload_to_browserstack do\n \
+                        upload_to_browserstack_app_live(\n \
+                            browserstack_username: \""+appConfig.development.browserstack.username+"\",\n \
+                            browserstack_access_key: \""+appConfig.development.browserstack.access_key+"\",\n \
+                        )\n \
+                    end\n";
+                fastfileContent = fastfileContent.replace(/#function_upload_to_browserstack/g,browserstackFunction);
+            }
 
             fs.writeFileSync(path.join(fastlanePath, "Fastfile"), fastfileContent)
             //Copy Snapfile
@@ -532,8 +614,35 @@ async function captureScreenshots(appConfig, platforms) {
         var pathFolder = path.join(platforms[platform])
         var projectPath = path.join(pathFolder, "platforms", platform)
 
-        var command = "cd " + projectPath + " && fastlane "+platform+" screenshots";
-        execWithLog(command);
+        if(platform == "android") {
+            var fastlanePath = path.join(projectPath, "fastlane", "metadata","android");
+
+            var dirs = util.File.getDirs(fastlanePath);
+            for(index in dirs) {
+                var languaheDir = dirs[index];
+                var phoneScreenshotsPath = path.join(fastlanePath, languaheDir, "images", "phoneScreenshots");
+                util.File.rmDir(phoneScreenshotsPath);
+            }
+
+            // Run emulator for Android device
+            // Android_screenshotgenerator_emulator
+            var emulatorRunning = shellEmulator.exec("emulator -avd AndroidScreenshotgeneratorEmulator", {async:true, silent:true})
+            var command = "cd " + projectPath + " && fastlane "+platform+" screenshots";
+            execWithLog(command);
+            emulatorRunning.kill();
+
+            // Run emulator for Android Tablet
+            // Android_tablet_screenshotgenerator_emulator
+            emulatorRunning = shellEmulator.exec("emulator -avd AndroidTabletScreenshotgeneratorEmulator", {async:true, silent:true})
+            var command = "cd " + projectPath + " && fastlane "+platform+" screenshots";
+            execWithLog(command);
+            emulatorRunning.kill();
+        } else {
+            var command = "cd " + projectPath + " && fastlane "+platform+" screenshots";
+            execWithLog(command);
+        }
+
+        
         
         if(platform == "android") {
 
@@ -542,7 +651,7 @@ async function captureScreenshots(appConfig, platforms) {
                 "2048x2730":"2048x2732",
                 "1241x2688":"1242x2688"
             }
-            var screenshotsPath = path.join(projectPath, "fastlane", "screenshots");
+            var screenshotsPath = path.join(projectPath, "fastlane", "screenshots","raw");
             var filePromises = [];
             var filesToRemove = [];
 
@@ -564,7 +673,8 @@ async function captureScreenshots(appConfig, platforms) {
                             if(dimensions.width == originalW && dimensions.height == originalH) {
                                 finalScreenshotImagePath = screenshotImagePath;
                                 finalScreenshotImagePath = finalScreenshotImagePath.replace(".png",".jpeg");
-                                filePromises.push(sharp(screenshotImagePath).jpeg().resize(newW, newH).toFile(finalScreenshotImagePath));                                filesToRemove.push(screenshotImagePath);
+                                filePromises.push(sharp(screenshotImagePath).jpeg().resize(newW, newH).toFile(finalScreenshotImagePath));
+                                filesToRemove.push(screenshotImagePath);
                             }
                         }
                     }
@@ -580,7 +690,6 @@ async function captureScreenshots(appConfig, platforms) {
 }
 
 function frameScreenshots(appConfig, platforms) {
-
     var defaultLanguage = "en-US"
      for(platform in platforms) {
         var pathFolder = path.join(platforms[platform])
@@ -588,87 +697,147 @@ function frameScreenshots(appConfig, platforms) {
 
         var projectPath = path.join(pathFolder, "platforms", platform)
         var screenshotsPath = projectPath
+        var screenshotsPathSource = projectPath
         if(platform == "android") {
-            screenshotsPath = path.join(screenshotsPath, "fastlane")
+            screenshotsPathSource = path.join(screenshotsPath, "fastlane", "metadata", "raw")
+            screenshotsPath = path.join(screenshotsPath, "fastlane", "metadata", "android")
         } else {
+            screenshotsPathSource = path.join(screenshotsPath, "fastlane", "screenshots", "raw")
             screenshotsPath = path.join(screenshotsPath, "fastlane", "screenshots")
         }
 
-        var locals = getDirectoriesWithFiles(screenshotsPath);
-
-
+        var locals = getDirectoriesWithFiles(screenshotsPathSource);
         for(index in appConfig.deploy.screenshots) {
             var screenshotConfig = appConfig.deploy.screenshots[index];
             var urlHash = md5(screenshotConfig.url)
+            var frameIndex = index;
             for(local in locals) {
-                var matchedIPhoneFiles = [];
-                var matchedIPhoneXSFiles = [];
-                var matchedIPadFiles = [];
-                var files = locals[local];
-                var localBase = path.basename(local)
-                for(index in files) {
-                    var file = files[index];
-                    console.log(file);
+                if(platform == "android") {
+                    var matchedAndroidFiles = [];
+                    var matchedAndroidTabletFiles = [];
 
-                    var filename = path.basename(file)
-                    if(filename.indexOf(urlHash) > -1 ) {
-                        if(filename.indexOf("iPhone 8 Plus") > -1 || filename.indexOf("iPhone XS Max") > -1) {
-                            matchedIPhoneFiles.push(file);
-                        } else if(filename.indexOf("iPad") > -1) {
-                            matchedIPadFiles.push(file);
+                    var localBase = path.basename(local)
+                    var imagePath = path.join(screenshotsPathSource, localBase, "images", "phoneScreenshots");
+                    var images = getFiles(imagePath);
+                    for(index in images) {
+                        var file = images[index];
+
+                        // console.log(file);
+                        var filename = path.basename(file)
+                        if(filename.indexOf(urlHash) > -1 ) {
+                            if(filename.indexOf("phone") > -1) {
+                                matchedAndroidFiles.push(file);
+                            } else if (filename.indexOf("tablet") > -1) {
+                                matchedAndroidTabletFiles.push(file);
+                            }
                         }
                     }
-                }
+                    console.log(matchedAndroidFiles);
+                    console.log(matchedAndroidTabletFiles);
 
-                for(index in matchedIPhoneFiles) {
-                    var screenshot = matchedIPhoneFiles[index];
-                    var final_screenshot = screenshot.replace(urlHash, md5(urlHash));
+                    var outputPath = path.join(screenshotsPath,localBase,"images","phoneScreenshots");
+                    
+                    // for(index in matchedAndroidFiles) {
+                        frameScreenshot(matchedAndroidFiles[0], outputPath, "Android", urlHash, screenshotConfig, framesFolder, defaultLanguage, localBase, frameIndex)
+                    // }
+                    // for(index in matchedAndroidTabletFiles) {
+                        frameScreenshot(matchedAndroidTabletFiles[0], outputPath, "AndroidTablet", urlHash, screenshotConfig, framesFolder, defaultLanguage, localBase, frameIndex)
+                    // }
+                } else {
+                    var matchedIPhoneFiles = [];
+                    var matchedIPhoneXSFiles = [];
+                    var matchedIPadFiles = [];
+                    var files = locals[local];
+                    var localBase = path.basename(local)
+                    for(index in files) {
+                        var file = files[index];
+                        // console.log(file);
 
-                    var screenshot_ext = path.extname(screenshot);
-                    screenshot_ext = screenshot_ext.replace(".","");
-                    var template_image = screenshotConfig.frame.template_image;
-                    var template_config = screenshotConfig.frame.template_config;
-
-                    if(screenshotConfig.frame.template_name != undefined) {
-                        var templatePath = path.join(framesFolder, screenshotConfig.frame.template_name);
-                        console.log(templatePath);
-                        if(util.File.isDir(templatePath)) {
-                            template_image = path.join(templatePath, "template.png");
-                            template_config = path.join(templatePath, "config.json");
+                        var filename = path.basename(file)
+                        if(filename.indexOf(urlHash) > -1 ) {
+                            if(filename.indexOf("iPhone 8 Plus") > -1) {
+                                matchedIPhoneFiles.push(file);
+                            } else if (filename.indexOf("iPhone XS Max") > -1) {
+                                matchedIPhoneXSFiles.push(file);
+                            } else if(filename.indexOf("iPad") > -1) {
+                                matchedIPadFiles.push(file);
+                            }
                         }
                     }
-                    if(screenshot_ext == "jpeg") {
-                        screenshot_ext = "jpg";
-                        final_screenshot = final_screenshot.replace(".jpeg",".jpg");
+
+                    console.log(matchedIPhoneFiles);
+                    console.log(matchedIPhoneXSFiles);
+                    console.log(matchedIPadFiles);
+
+                    var outputPath = path.join(screenshotsPath,localBase);
+
+                    for(index in matchedIPhoneFiles) {
+                        frameScreenshot(matchedIPhoneFiles[index], outputPath, "iPhone8", urlHash, screenshotConfig, framesFolder, defaultLanguage, localBase, frameIndex)
                     }
-
-                    var command = phpInterpreter+" "+screengenerator
-                    + " -t \""+template_image+"\""
-                    + " -x \""+template_config+"\""
-                    + " -r "+screenshot_ext
-                    + " -c \""+screenshotConfig.frame.background_color+"\"" 
-                    + " -s \""+screenshot+"\""
-                    + " -d \""+final_screenshot+"\"";
-
-                    if(screenshotConfig.frame.text != undefined) {
-                        var text = translateText(screenshotConfig.frame.text, defaultLanguage, localBase)
-                        command += " -f \""+text+"\""
-
-                        var text_color = "#ffffff";
-                        if(screenshotConfig.frame.text_color != undefined) {
-                            text_color = screenshotConfig.frame.text_color;
-                        }
-                        command += " -a \""+text_color+"\"";
+                    for(index in matchedIPhoneXSFiles) {
+                        frameScreenshot(matchedIPhoneXSFiles[index], outputPath, "iPhoneX", urlHash, screenshotConfig, framesFolder, defaultLanguage, localBase, frameIndex)
                     }
-
-                    execWithLog(command);
-
-                    // Remove original file
-                    // fs.unlinkSync(screenshot)
+                    for(index in matchedIPadFiles) {
+                        frameScreenshot(matchedIPadFiles[index], outputPath, "iPad", urlHash, screenshotConfig, framesFolder, defaultLanguage, localBase, frameIndex)
+                    }
                 }
             }
         }
     }
+}
+
+function frameScreenshot(screenshot, pathOfScreenshot, devicePathName, urlHash, screenshotConfig, framesFolder,defaultLanguage, localBase, index) {
+    
+    var screenshot_ext = path.extname(screenshot);
+    screenshot_ext = screenshot_ext.replace(".","");
+    var template_image = screenshotConfig.frame.template_image;
+    var template_config = screenshotConfig.frame.template_config;
+
+    var replacedScreenshot = screenshot.replace(urlHash, (index+"_"+md5(urlHash)));
+    var final_screenshot = path.join(pathOfScreenshot, path.basename(replacedScreenshot));
+
+
+    if(screenshotConfig.frame.template_name != undefined) {
+        var templatePath = path.join(framesFolder, screenshotConfig.frame.template_name);
+        console.log(templatePath);
+        if(util.File.isDir(templatePath)) {
+            template_image = path.join(templatePath, devicePathName, "template.png");
+            template_config = path.join(templatePath, devicePathName, "config.json");
+        }
+    }
+    if(screenshot_ext == "jpeg") {
+        screenshot_ext = "jpg";
+        final_screenshot = final_screenshot.replace(".jpeg",".jpg");
+    }
+
+    var command = nodeInterpreter+" "+screengenerator
+                    + " --template \""+template_image+"\""
+                    + " --config \""+template_config+"\""
+                    + " --backgroundColor \""+screenshotConfig.frame["background-color"]+"\"" 
+                    + " --screenshot \""+screenshot+"\""
+                    + " --output \""+final_screenshot+"\"";
+
+    if(screenshotConfig.frame.text != undefined) {
+        var finalText = [];
+
+        for(index in screenshotConfig.frame.text) {
+            var textBlock = screenshotConfig.frame.text[index];
+            var translatedText = translateText(textBlock.text, defaultLanguage, localBase);
+            finalText.push({
+                text:translatedText,
+                textColor:textBlock["text-color"]
+            });
+        }
+
+        var jsonText = JSON.stringify(finalText).replace(/\"/g, '\\\"');
+        command += " --text \""+jsonText+"\"";
+    }
+
+    // console.log(command);
+    execWithLog(command);
+
+    // Remove original file
+    // fs.unlinkSync(screenshot)
 }
 
 function translateText(content, languageFrom, languageTo) {
@@ -953,10 +1122,16 @@ async function createImageWithCenterIcon(width, height, background, format, icon
 
                 var templateConfigPath = path.join(tempSourceDir, "tmp_config.json");
                 fs.writeFileSync(templateConfigPath, JSON.stringify(templateConfig));
+
+                var command = nodeInterpreter+" "+screengenerator
+                    + " --template \""+templatePath+"\""
+                    + " --config \""+templateConfigPath+"\""
+                    + " --backgroundColor \""+background+"\"" 
+                    + " --screenshot \""+iconPath+"\""
+                    + " --output \""+outputPath+"\""
+                    + " --size \""+width+"x"+height+"\"";       
                 
-                var command = phpInterpreter+" "+screengenerator+" -t \""+templatePath+"\" -x \""+templateConfigPath+"\" -r "+format+" -c "+"\""+background+"\""+" -s \""+iconPath+"\" -o "+width+"x"+height
-                command += " -d \""+outputPath+"\"";          
-                
+                console.log(command);
                 shell.exec(command);
 
                 util.File.rmDir(tempSourceDir);
@@ -1119,6 +1294,15 @@ function getDirectoriesWithFiles(srcpath) {
     return result;
 }
 
+function getFiles(directory) {
+        var files = fs.readdirSync(directory)
+            .filter(file => file !== ".DS_Store")
+            .map(file => path.join(directory, file))
+            .filter(path => fs.statSync(path).isFile());
+
+        return files;
+}
+
 function getDirectories(srcpath) {
     return fs.readdirSync(srcpath)
             .map(file => path.join(srcpath, file)).filter(path => util.File.isDir(path));
@@ -1257,6 +1441,52 @@ function generatePluginInstallViaPlugman(pluginOption, appDirectory) {
     return commands
 }
 
+
+async function testPerformManulaChanges(appConfig, platforms) {
+    for(platform in platforms) {
+        var pathFolder = path.join(platforms[platform])
+        if(platform == "android") {
+
+        } else {
+            var projectName = appConfig.name;
+            var googleServicePath = path.join(pathFolder, "platforms", "ios","GoogleService-Info.plist");
+            var projectPath = path.join(pathFolder, "platforms", "ios", projectName+".xcodeproj","project.pbxproj");
+            var proj = new xcode.project(projectPath);
+            proj = proj.parseSync();
+            var udid = proj.getFirstTarget().uuid
+            var pbxBuildConfigurationSection = proj.pbxXCBuildConfigurationSection()
+            console.log(projectName);
+            for (key in pbxBuildConfigurationSection){
+                var newKey = key;
+                if(pbxBuildConfigurationSection[key].name == "Debug") {
+                    var debugBuildConfiguration = pbxBuildConfigurationSection[key].buildSettings['GCC_PREPROCESSOR_DEFINITIONS'];
+                    if(debugBuildConfiguration && debugBuildConfiguration.indexOf("\"DEBUG=1\"") < 0) {
+                        pbxBuildConfigurationSection[key].buildSettings['GCC_PREPROCESSOR_DEFINITIONS'].push("\"DEBUG=1\"");
+                    } else {
+                        pbxBuildConfigurationSection[key].buildSettings['GCC_PREPROCESSOR_DEFINITIONS'] = [];
+                        pbxBuildConfigurationSection[key].buildSettings['GCC_PREPROCESSOR_DEFINITIONS'].push("\"$(inherited)\"");
+                        pbxBuildConfigurationSection[key].buildSettings['GCC_PREPROCESSOR_DEFINITIONS'].push("\"DEBUG=1\"");
+                    }
+
+                    debugBuildConfiguration = pbxBuildConfigurationSection[key].buildSettings['OTHER_SWIFT_FLAGS'];
+                    if(debugBuildConfiguration && debugBuildConfiguration.indexOf("-D DEBUG") < 0) {
+                        // Remove last \" character from value
+                        var otherSwiftFlag = pbxBuildConfigurationSection[key].buildSettings['OTHER_SWIFT_FLAGS'].substring(0, pbxBuildConfigurationSection[key].buildSettings['OTHER_SWIFT_FLAGS'].length-1);
+                        pbxBuildConfigurationSection[key].buildSettings['OTHER_SWIFT_FLAGS'] = otherSwiftFlag+" -D DEBUG\"";
+                        // console.log(pbxBuildConfigurationSection[key]);
+                    } else {
+                        pbxBuildConfigurationSection[key].buildSettings['OTHER_SWIFT_FLAGS'] = "\"$(inherited) -D DEBUG\"";
+                    }
+                    console.log(pbxBuildConfigurationSection[key]);
+                }
+            }
+
+            // fs.writeFileSync(projectPath, proj.writeSync());
+
+        }
+}
+}
+
 async function performManulaChanges(appConfig, platforms) {
     for(platform in platforms) {
         var pathFolder = path.join(platforms[platform])
@@ -1337,6 +1567,22 @@ async function performManulaChanges(appConfig, platforms) {
                     break;
                 }
             }
+            for (key in pbxBuildConfigurationSection){
+                var newKey = key;
+                if(pbxBuildConfigurationSection[key].name == "Debug") {
+                    var debugBuildConfiguration = pbxBuildConfigurationSection[key].buildSettings['GCC_PREPROCESSOR_DEFINITIONS'];
+                    if(debugBuildConfiguration && debugBuildConfiguration.indexOf("\"DEBUG=1\"") < 0) {
+                        pbxBuildConfigurationSection[key].buildSettings['GCC_PREPROCESSOR_DEFINITIONS'].push("\"DEBUG=1\"");
+                    }
+
+                    debugBuildConfiguration = pbxBuildConfigurationSection[key].buildSettings['OTHER_SWIFT_FLAGS'];
+                    if(debugBuildConfiguration && debugBuildConfiguration.indexOf("-D DEBUG") < 0) {
+                        // Remove last \" character from value
+                        var otherSwiftFlag = pbxBuildConfigurationSection[key].buildSettings['OTHER_SWIFT_FLAGS'].substring(0, pbxBuildConfigurationSection[key].buildSettings['OTHER_SWIFT_FLAGS'].length-1);
+                        pbxBuildConfigurationSection[key].buildSettings['OTHER_SWIFT_FLAGS'] = otherSwiftFlag+" -D DEBUG\"";
+                    }
+                }
+            }
             fs.writeFileSync(projectPath, proj.writeSync());
 
             var proj = new xcode.project(projectPath);
@@ -1366,7 +1612,6 @@ async function performManulaChanges(appConfig, platforms) {
             }
 
             // Add Targer For Screenshot Generator
-
             var fastlaneFolderPath = path.join(pathFolder, "platforms", "ios","QFastlaneUITests");
             util.File.mkDir(fastlaneFolderPath);
 

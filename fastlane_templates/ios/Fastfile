@@ -17,16 +17,24 @@ default_platform(:ios)
 
 platform :ios do
 
-  desc "Submit to Crashlytics Beta"
+  desc "Submit to Crashlytics, Browserstack "
   lane :beta do
-    build_app(scheme: "<project_name>",workspace: "<project_name>.xcworkspace",include_bitcode: true,export_xcargs: "-allowProvisioningUpdates")
-    crashlytics(
-      emails: "<testers>",
-      api_token: "<fabric_api_key>",
-      build_secret: "<fabric_api_secret>"
+    automatic_code_signing(
+      path: "<project_name>.xcodeproj",
+      use_automatic_signing: true,
+      team_id: "<team_id>",
+      targets: ["<project_name>"]
     )
+    build_app(configuration: "Debug", scheme: "<project_name>",workspace: "<project_name>.xcworkspace",include_bitcode: true,export_xcargs: "-allowProvisioningUpdates")
+    #upload_to_crashlytics
+    #upload_to_browserstack
   end
 
+  #function_upload_to_crashlytics
+
+  #to install fastlane plugin: fastlane add_plugin browserstack
+  #function_upload_to_browserstack
+  
   desc "Build release IPA"
   lane :build do
     automatic_code_signing(
