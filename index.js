@@ -32,6 +32,7 @@ var ops = stdio.getopt({
     'screenshots':{description: 'Make screenshots'},
     'framing':{description: 'Add frames to existing screenshots'},
     'beta':{args: 1, description: 'Distribute to beta. Available "fabric", "browserstack"'},
+    'deploy':{description: 'Deploy release to Google Play/App Store'},
 
     'full_create': {description: 'Create app, Install plugins, Update bundle'},
     'update_plugin': {description: 'Install/Update Plugins, Update bundle'},
@@ -42,7 +43,7 @@ var ops = stdio.getopt({
     'frame_output': { args: 1, description: 'Output path for'},
 });
 
-var appConfig = undefined;
+let appConfig = undefined;
 var platforms = {};
 var phpInterpreter = undefined;
 var nodeInterpreter = undefined;
@@ -81,6 +82,7 @@ async function main() {
     SCREENSHOTS = ops.screenshots;
     FRAMING = ops.framing;
     BETA = ops.beta;
+    DEPLOY = ops.deploy;
 
 
 
@@ -104,7 +106,7 @@ async function main() {
     const configPath = path.join(PWD, CONFIG_FILE_NAME);
     const buildPath = path.join(PWD, "build");
 
-    const appConfig = require(configPath);
+    appConfig = require(configPath);
     const appNameForOS = appConfig.name.split(" ").join('')
 
     // Prepare platforms
@@ -234,6 +236,11 @@ async function main() {
         distributeBeta(appConfig, platforms);
     }
 
+    if(DEPLOY) {
+        console.log("---deploy---");
+        deploy(appConfig, platforms);
+    }
+
     return;
 
     if (FULL_CREATE) {
@@ -318,6 +325,16 @@ async function main() {
 
     // performManulaChanges(appConfig, platforms)
     // cordovaBuild(BUILD_AFTER,platforms)
+}
+
+async function deploy(appConfig, platforms) {
+    console.log(platforms)
+    for(platform in platforms) {
+        var pathFolder = path.join(platforms[platform])
+        var projectPath = path.join(pathFolder, "platforms", platform)
+
+        execWithLog("cd " + projectPath + " && fastlane release_no_screenshot");
+    }
 }
 
 async function distributeBeta(appConfig, platforms) {
@@ -573,7 +590,7 @@ async function createDeployConfig(appConfig, platforms, appRootPath) {
                 fastfileContent = fastfileContent.replace(/#upload_to_crashlytics/g, "upload_to_crashlytics");
                 var crashlyticsFunction = "desc \"Upload to Crashlytics\"\n \
                         lane :upload_to_crashlytics do\n \
-                        gradle(task: \"clean assembleDebug\") \
+                        gradle(task: \"clean assembleDebug\")\n \
                         crashlytics(\n \
                             emails: \""+appConfig.development.fabric.testers+"\",\n \
                             api_token: \""+appConfig.development.fabric.fabric_api_key+"\",\n \
@@ -587,7 +604,7 @@ async function createDeployConfig(appConfig, platforms, appRootPath) {
                 fastfileContent = fastfileContent.replace(/#upload_to_browserstack/g, "upload_to_browserstack");
                 var browserstackFunction = "desc \"Upload to Browserstack\"\n \
                         lane :upload_to_browserstack do\n \
-                        gradle(task: \"clean assembleDebug\") \
+                        gradle(task: \"clean assembleDebug\")\n \
                         upload_to_browserstack_app_live(\n \
                             browserstack_username: \""+appConfig.development.browserstack.username+"\",\n \
                             browserstack_access_key: \""+appConfig.development.browserstack.access_key+"\",\n \
@@ -651,7 +668,7 @@ async function createDeployConfig(appConfig, platforms, appRootPath) {
                 fastfileContent = fastfileContent.replace(/#upload_to_crashlytics/g, "upload_to_crashlytics");
                 var crashlyticsFunction = "desc \"Upload to Crashlytics\"\n \
                         lane :upload_to_crashlytics do\n \
-                        build_debug \
+                        build_debug\n \
                         crashlytics(\n \
                             emails: \""+appConfig.development.fabric.testers+"\",\n \
                             api_token: \""+appConfig.development.fabric.fabric_api_key+"\",\n \
@@ -665,7 +682,7 @@ async function createDeployConfig(appConfig, platforms, appRootPath) {
                 fastfileContent = fastfileContent.replace(/#upload_to_browserstack/g, "upload_to_browserstack");
                 var browserstackFunction = "desc \"Upload to Browserstack\"\n \
                         lane :upload_to_browserstack do\n \
-                        build_debug \
+                        build_debug\n \
                         upload_to_browserstack_app_live(\n \
                             browserstack_username: \""+appConfig.development.browserstack.username+"\",\n \
                             browserstack_access_key: \""+appConfig.development.browserstack.access_key+"\",\n \
