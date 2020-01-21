@@ -6,7 +6,6 @@ var shellEmulator = require('shelljs');
 var path = require('path');
 var fs = require('fs');
 var fs_extra = require('fs-extra');
-var xcode = require('xcode');
 var url = require('url');
 xml2js = require('xml2js');
 var plist = require('plist');
@@ -17,19 +16,30 @@ var sync = require('sync');
 var deasync = require('deasync');
 var imageSize = require('image-size');
 var md5 = require('md5');
-var util = require('./util.js')
+var util = require('./util.js');
+const environment = require('./environment');
+const readlineSync = require('readline-sync');
 
 
 var ops = stdio.getopt({
-    'appconfig': {key: 'c', args: 1, mandatory: true, description: 'Full path to config file'},
-    'php': {key: 'p', args: 1, mandatory: true, description: 'Full path to PHP interpreter'},
-    'node': {key: 'n', args: 1, mandatory: true, description: 'Full path to node interpreter'},
-    'screengenerator': {key: 's', args: 1, mandatory: true, description: 'Full path to screengenerator'},
+    // 'appconfig': {key: 'c', args: 1, mandatory: true, description: 'Full path to config file'},
+    // 'php': {key: 'p', args: 1, mandatory: true, description: 'Full path to PHP interpreter'},
+    // 'node': {key: 'n', args: 1, mandatory: true, description: 'Full path to node interpreter'},
+    // 'screengenerator': {key: 's', args: 1, mandatory: true, description: 'Full path to screengenerator'},
+    'create':{description: 'Create new project. --create <FULL_PATH_TO_FOLDER> <URL_TO_GIT>'},
+    'update':{description: 'Pull latest changes for project'},
+    'build':{description: 'Build app. Remove previous'},
+    'screenshots':{description: 'Make screenshots'},
+    'framing':{description: 'Add frames to existing screenshots'},
+    'beta':{args: 1, description: 'Distribute to beta. Available "fabric", "browserstack"'},
+
     'full_create': {description: 'Create app, Install plugins, Update bundle'},
     'update_plugin': {description: 'Install/Update Plugins, Update bundle'},
     'update_bundle': {description: 'Update bundle'},
     'translate_metadata': {description: 'Translate metadata from en local'},
     'capture_screenshots': {description: 'Capture screenshots through fastlane'},
+    'frame_screenshots': {description: 'Frame screenshots'},
+    'frame_output': { args: 1, description: 'Output path for'},
 });
 
 var appConfig = undefined;
@@ -37,71 +47,205 @@ var platforms = {};
 var phpInterpreter = undefined;
 var nodeInterpreter = undefined;
 var screengenerator = undefined;
+var frame_output = undefined;
 
 main().then(result => {
     console.log("Finish generate project");
 });
 
 async function main() {
-    var FULL_CREATE = false
-    var UPDATE_PLUGIN = false
-    var UPDATE_BUNDLE = false
-    var TRANSLATE_METADATA = false
+    //OLD
+    var FULL_CREATE = false;
+    var UPDATE_PLUGIN = false;
+    var UPDATE_BUNDLE = false;
+    var TRANSLATE_METADATA = false;
     var CAPTURE_SCREENSHOTS = false;
+    var FRAME_SCREENSHOTS = false;
     var BUILD_AFTER = true
+
+
+    //NEW
+    let CREATE = false; // name & git_url
+    let UPDATE = false;
+
+
+
+    phpInterpreter = environment["php"];
+    nodeInterpreter = environment["node"];
+    screengenerator = environment["screengenerator"];
+
+
+    CREATE = ops.create;
+    UPDATE = ops.update;
+    BUILD = ops.build;
+    SCREENSHOTS = ops.screenshots;
+    FRAMING = ops.framing;
+    BETA = ops.beta;
+
+
+
+
     
-    if (ops.appconfig) {
+    // if (ops.appconfig) {
         FULL_CREATE = ops.full_create;
         UPDATE_PLUGIN = ops.update_plugin;
         UPDATE_BUNDLE = ops.update_bundle;
         TRANSLATE_METADATA = ops.translate_metadata;
         CAPTURE_SCREENSHOTS = ops.capture_screenshots;
-        phpInterpreter = ops.php;
-        nodeInterpreter = ops.node;
-        screengenerator = ops.screengenerator;
-    }
+        FRAME_SCREENSHOTS = ops.frame_screenshots;
+        frame_output = ops.frame_output;
+    // }
     console.log(ops);
-    var pathToConfig = ops.appconfig;
-    if (!path.isAbsolute(pathToConfig)) {
-        pathToConfig = path.join(__dirname, pathToConfig)
-    }
 
-    appConfig = require(pathToConfig);
-    var appNameForOS = appConfig.name.split(" ").join('')
-    var appRootPath = path.dirname(pathToConfig)
-    var appBuildRootPath = path.join(appRootPath, "build")
-// var appDestination = path.join(appBuildRootPath, appNameForOS)
+    const PWD = process.env.PWD;
+    const MARKER_FILE_NAME=".qbix_cordova_installer";
+    const CONFIG_FILE_NAME="config.json";
 
-    createFolderIfNotExist(appBuildRootPath);
+    const configPath = path.join(PWD, CONFIG_FILE_NAME);
+    const buildPath = path.join(PWD, "build");
 
-// Create separate project for each platform
+    const appConfig = require(configPath);
+    const appNameForOS = appConfig.name.split(" ").join('')
 
+    // Prepare platforms
+    const appRootPath = path.dirname(configPath)
+    const appBuildRootPath = path.join(appRootPath, "build")
     for (platform in appConfig.platforms) {
         var platformAppDirectory = path.join(appBuildRootPath, appConfig.platforms[platform]);
-        console.log(platformAppDirectory);
-        createFolderIfNotExist(platformAppDirectory);
         platforms[appConfig.platforms[platform]] = path.join(platformAppDirectory, appNameForOS)
     }
-    
-    // updateMetadata(appConfig, platforms);
-    // return;
-    // frameScreenshots(appConfig, platforms);
-    // return;
-    // await testPerformManulaChanges(appConfig, platforms);
-    // return;
 
-    console.log(FULL_CREATE);
+    if(CREATE) {
+        const folderName = ops.args[0];
+        const gitUrl = ops.args[1];
+        // Create folder
+        const folderPath = path.join(PWD, folderName);
+        const markerFilePath = path.join(folderPath, MARKER_FILE_NAME);
+        if (fs.existsSync(markerFilePath)) {
+            console.error("Project already created. Please remove it or create in another folder");
+            return;
+        }
+        createFolderIfNotExist(folderPath);
+
+        // Download here from github
+        shell.exec("git clone " + gitUrl +" "+folderPath)
+
+        // Create marker file
+        fs.writeFileSync(markerFilePath, "");
+    }
+
+    if(UPDATE || BUILD) {
+        const markerFilePath = path.join(PWD, MARKER_FILE_NAME);
+        if (!fs.existsSync(markerFilePath)) {
+            console.error("Not found project in current folder: " + PWD);
+            return;
+        }
+    }
+
+    if(UPDATE) {
+        shell.exec("git pull origin master");
+    }
+
+    if(BUILD) {
+        if (!fs.existsSync(configPath)) {
+            console.error("Not found config.json in current folder: " + PWD);
+            return;
+        }
+
+
+        if(fs.existsSync(buildPath)) {
+            if (!readlineSync.keyInYN('Previous build will be removed. Continue?')) {
+                return ;
+            }
+            util.File.rmDir(buildPath);
+        }
+
+        console.log("BUILD");
+       
+       
+        createFolderIfNotExist(appBuildRootPath);
+
+        // Create separate project for each platform
+        for (platform in appConfig.platforms) {
+            var platformAppDirectory = path.join(appBuildRootPath, appConfig.platforms[platform]);
+            console.log(platformAppDirectory);
+            createFolderIfNotExist(platformAppDirectory);
+            platforms[appConfig.platforms[platform]] = path.join(platformAppDirectory, appNameForOS)
+        }
+
+        // Add projects
+        console.log(appNameForOS);
+        addProjects(appNameForOS)
+
+        // setupConfig
+        setupConfig(appConfig);
+
+        // Copy icons
+        await copyIcons(appConfig,platforms, appRootPath);
+
+        // Add platforms
+        addPlatforms();
+
+        // Copy resourcpyResources(appConfig, appRootPath, platforms)
+        copyResources(appConfig, appRootPath, platforms)
+
+        if(appConfig.splashscreen != undefined && appConfig.splashscreen.generate) {
+            // Generate splashscreen
+            await generateSplashscreens(appConfig, appRootPath);
+        } else {
+            // Copy splashscreen
+            copyIOSSplashscreens();
+        }
+
+        addPlugins();
+
+        //update metadata
+        console.log("---updateMetadata---");
+        updateMetadata(appConfig, platforms);
+        //create bundle
+        console.log("---createBundle---");
+        createBundle(appConfig, platforms)
+        //create config.json file for main Q plugin
+        console.log("---copyQConfig---");
+        copyQConfig(appConfig, platforms);
+        // Create deploy config
+        console.log("---createDeployConfig---");
+        await createDeployConfig(appConfig, platforms, appRootPath);
+
+        console.log("---performManulaChanges---");
+        performManulaChanges(appConfig, platforms)
+        console.log("---cordovaBuild---");
+        cordovaBuild(BUILD_AFTER,platforms)
+    }
+
+    if(SCREENSHOTS) {
+        console.log("---captureScreenshots---");
+        await captureScreenshots(appConfig, platforms);
+        console.log("---After captureScreenshots---");
+    }
+
+    if(FRAMING) {
+        console.log("---frameScreenshots---");
+        frameScreenshots(appConfig, platforms);
+    }
+
+    if(BETA) {
+        console.log("---distributeBeta---");
+        distributeBeta(appConfig, platforms);
+    }
+
+    return;
 
     if (FULL_CREATE) {
     // Add projects
-    console.log(appNameForOS);
+        console.log(appNameForOS);
         addProjects(appNameForOS)
 
     // setupConfig
         setupConfig(appConfig);
 
     // Copy icons
-        await copyIcons(platforms, appRootPath);
+        await copyIcons(appConfig,platforms, appRootPath);
 
     // Add platforms
         addPlatforms();
@@ -109,7 +253,7 @@ async function main() {
     // Copy resourcpyResources(appConfig, appRootPath, platforms)
         copyResources(appConfig, appRootPath, platforms)
 
-        if(appConfig.splashscreen != undefined) {
+        if(appConfig.splashscreen != undefined && appConfig.splashscreen.generate) {
             // Generate splashscreen
             await generateSplashscreens(appConfig, appRootPath);
         } else {
@@ -127,38 +271,71 @@ async function main() {
     }
     if (FULL_CREATE || UPDATE_PLUGIN || UPDATE_BUNDLE) {
         //update metadata
+        console.log("---updateMetadata---");
         updateMetadata(appConfig, platforms);
         //create bundle
+        console.log("---createBundle---");
         createBundle(appConfig, platforms)
         //create config.json file for main Q plugin
+        console.log("---copyQConfig---");
         copyQConfig(appConfig, platforms);
         // Create deploy config
+        console.log("---createDeployConfig---");
         await createDeployConfig(appConfig, platforms, appRootPath);
     }
 
     // cordovaBuild(BUILD_AFTER,platforms)
 
     if (FULL_CREATE) {
+        console.log("---performManulaChanges---");
         performManulaChanges(appConfig, platforms)
+        console.log("---cordovaBuild---");
         cordovaBuild(BUILD_AFTER,platforms)
     }
 
     if (FULL_CREATE || UPDATE_PLUGIN || UPDATE_BUNDLE) {
         // Update name of app
-        updateNameOfApp(appConfig, platforms)
+        console.log("---updateNameOfApp---");
+        // updateNameOfApp(appConfig, platforms)
     }
 
     if(TRANSLATE_METADATA) {
+        console.log("---translateMetadata---");
         translateMetadata(appConfig, platforms);
     }
 
     if(CAPTURE_SCREENSHOTS) {
-        // await captureScreenshots(appConfig, platforms);
+        console.log("---captureScreenshots---");
+        await captureScreenshots(appConfig, platforms);
+        console.log("---frameScreenshots---");
         frameScreenshots(appConfig, platforms);
+    }
+
+    if(FRAME_SCREENSHOTS) {
+        console.log("---frameScreenshots---");
+        frameFileScreenshots(appConfig, platforms);
     }
 
     // performManulaChanges(appConfig, platforms)
     // cordovaBuild(BUILD_AFTER,platforms)
+}
+
+async function distributeBeta(appConfig, platforms) {
+    console.log(platforms)
+    for(platform in platforms) {
+        var pathFolder = path.join(platforms[platform])
+        var projectPath = path.join(pathFolder, "platforms", platform)
+
+        let action = null;
+        if(BETA == "fabric") {
+            action= "upload_to_crashlytics"
+        } else if(BETA == "browserstack") {
+            action= "upload_to_browserstack"
+        }
+        if(action != null) {
+            execWithLog("cd " + projectPath + " && fastlane "+platform+" "+action);
+        }
+    }
 }
 
 function cordovaBuild(BUILD_AFTER,platforms) {
@@ -396,6 +573,7 @@ async function createDeployConfig(appConfig, platforms, appRootPath) {
                 fastfileContent = fastfileContent.replace(/#upload_to_crashlytics/g, "upload_to_crashlytics");
                 var crashlyticsFunction = "desc \"Upload to Crashlytics\"\n \
                         lane :upload_to_crashlytics do\n \
+                        gradle(task: \"clean assembleDebug\") \
                         crashlytics(\n \
                             emails: \""+appConfig.development.fabric.testers+"\",\n \
                             api_token: \""+appConfig.development.fabric.fabric_api_key+"\",\n \
@@ -409,6 +587,7 @@ async function createDeployConfig(appConfig, platforms, appRootPath) {
                 fastfileContent = fastfileContent.replace(/#upload_to_browserstack/g, "upload_to_browserstack");
                 var browserstackFunction = "desc \"Upload to Browserstack\"\n \
                         lane :upload_to_browserstack do\n \
+                        gradle(task: \"clean assembleDebug\") \
                         upload_to_browserstack_app_live(\n \
                             browserstack_username: \""+appConfig.development.browserstack.username+"\",\n \
                             browserstack_access_key: \""+appConfig.development.browserstack.access_key+"\",\n \
@@ -454,7 +633,7 @@ async function createDeployConfig(appConfig, platforms, appRootPath) {
             var promise = sharp(originalIconPath).resize(512, 512).toFile(path.join(fastlaneMetadataAndroidImages, "icon.png"))
             await promise;
             // Copy Google Play feature featureGraphic.png 1024 w x 500 h JPG 
-            await createImageWithCenterIcon(1024, 500, appConfig.splashscreen.background, "jpeg", originalIconPath, path.join(fastlaneMetadataAndroidImages, "featureGraphic.jpeg"));
+            await createImageWithCenterIcon(1024, 500, appConfig.background, "jpeg", originalIconPath, path.join(fastlaneMetadataAndroidImages, "featureGraphic.jpeg"));
         } else {
             var fastlaneExamplePath = path.join(__dirname, "fastlane_templates", "ios");
             //Copy Appfile
@@ -472,6 +651,7 @@ async function createDeployConfig(appConfig, platforms, appRootPath) {
                 fastfileContent = fastfileContent.replace(/#upload_to_crashlytics/g, "upload_to_crashlytics");
                 var crashlyticsFunction = "desc \"Upload to Crashlytics\"\n \
                         lane :upload_to_crashlytics do\n \
+                        build_debug \
                         crashlytics(\n \
                             emails: \""+appConfig.development.fabric.testers+"\",\n \
                             api_token: \""+appConfig.development.fabric.fabric_api_key+"\",\n \
@@ -485,6 +665,7 @@ async function createDeployConfig(appConfig, platforms, appRootPath) {
                 fastfileContent = fastfileContent.replace(/#upload_to_browserstack/g, "upload_to_browserstack");
                 var browserstackFunction = "desc \"Upload to Browserstack\"\n \
                         lane :upload_to_browserstack do\n \
+                        build_debug \
                         upload_to_browserstack_app_live(\n \
                             browserstack_username: \""+appConfig.development.browserstack.username+"\",\n \
                             browserstack_access_key: \""+appConfig.development.browserstack.access_key+"\",\n \
@@ -610,10 +791,12 @@ function translateMetadata(appConfig, platforms) {
 }
 
 async function captureScreenshots(appConfig, platforms) {
+    console.log(platforms)
     for(platform in platforms) {
         var pathFolder = path.join(platforms[platform])
         var projectPath = path.join(pathFolder, "platforms", platform)
 
+        console.log(projectPath)
         if(platform == "android") {
             var fastlanePath = path.join(projectPath, "fastlane", "metadata","android");
 
@@ -630,6 +813,7 @@ async function captureScreenshots(appConfig, platforms) {
             var command = "cd " + projectPath + " && fastlane "+platform+" screenshots";
             execWithLog(command);
             emulatorRunning.kill();
+            console.log("After running android emulator");
 
             // Run emulator for Android Tablet
             // Android_tablet_screenshotgenerator_emulator
@@ -689,6 +873,33 @@ async function captureScreenshots(appConfig, platforms) {
     }
 }
 
+function frameFileScreenshots(appConfig, platforms) {
+     var defaultLanguage = "en-US";
+     for(platform in platforms) {
+        var pathFolder = path.join(platforms[platform])
+        var framesFolder = path.join(__dirname, "frame_template");
+
+        var screenshotsPath = path.join(frame_output);
+
+        var locales = util.Local.getArrayLocale(appConfig.deploy.locales);
+        for(let index in locales) {
+            var localBase = locales[index];
+            for(let index in appConfig.deploy.screenshots) {
+                var screenshotConfig = appConfig.deploy.screenshots[index];
+                var file = screenshotConfig.file;
+                var urlHash = md5(screenshotConfig.file)
+                var frameIndex = index;
+                console.log(screenshotConfig);
+                console.log(localBase);
+                var outputPath = path.join(screenshotsPath,localBase);
+
+                frameScreenshot(file, outputPath, "iPhoneX", urlHash, screenshotConfig, framesFolder, defaultLanguage, localBase, frameIndex)   
+            }
+        }
+    }
+
+}
+
 function frameScreenshots(appConfig, platforms) {
     var defaultLanguage = "en-US"
      for(platform in platforms) {
@@ -707,9 +918,11 @@ function frameScreenshots(appConfig, platforms) {
         }
 
         var locals = getDirectoriesWithFiles(screenshotsPathSource);
+        console.log(locals);
         for(index in appConfig.deploy.screenshots) {
             var screenshotConfig = appConfig.deploy.screenshots[index];
             var urlHash = md5(screenshotConfig.url)
+            console.log(screenshotConfig);
             var frameIndex = index;
             for(local in locals) {
                 if(platform == "android") {
@@ -736,13 +949,14 @@ function frameScreenshots(appConfig, platforms) {
                     console.log(matchedAndroidTabletFiles);
 
                     var outputPath = path.join(screenshotsPath,localBase,"images","phoneScreenshots");
+                    console.log(outputPath);
                     
-                    // for(index in matchedAndroidFiles) {
+                    for(index in matchedAndroidFiles) {
                         frameScreenshot(matchedAndroidFiles[0], outputPath, "Android", urlHash, screenshotConfig, framesFolder, defaultLanguage, localBase, frameIndex)
-                    // }
-                    // for(index in matchedAndroidTabletFiles) {
+                    }
+                    for(index in matchedAndroidTabletFiles) {
                         frameScreenshot(matchedAndroidTabletFiles[0], outputPath, "AndroidTablet", urlHash, screenshotConfig, framesFolder, defaultLanguage, localBase, frameIndex)
-                    // }
+                    }
                 } else {
                     var matchedIPhoneFiles = [];
                     var matchedIPhoneXSFiles = [];
@@ -919,7 +1133,7 @@ async function syncPromises(promisesArray) {
     return Promise.all(promisesArray)
 }
 
-async function copyIcons(platforms, appRootPath) {
+async function copyIcons(appConfig, platforms, appRootPath) {
     var originalIconPath = path.join(appRootPath, "icon.png")
 
     var androidIconSize = {
@@ -952,7 +1166,11 @@ async function copyIcons(platforms, appRootPath) {
         "icon-20@2x.png":"40:40",
         "icon-20@3x.png":"60:60",
         "icon-83.5@2x.png":"167:167",
-        "icon-1024.png":"1024:1024"
+        "icon-1024.png":"1024:1024",
+        "AppIcon24x24@2x.png":"48:48",
+        "AppIcon27.5x27.5@2x.png":"55:55",
+        "AppIcon86x86@2x.png":"172:172",
+        "AppIcon98x98@2x.png":"196:196"
     };
     // var iosIcons = {
     //         "icon-60@3x.png":"180:180",
@@ -992,15 +1210,27 @@ async function copyIcons(platforms, appRootPath) {
         if(platform == "android") {
             for(iconSize in androidIconSize) {
                 var size = parseInt(androidIconSize[iconSize].split("x")[0], 10);
-                filePromises.push(sharp(originalIconPath).resize(size, size).toFile(path.join(platformPath, iconSize)));
+                var outputFile = path.join(platformPath, iconSize);
+                var action = createImageWithFullsizeIcon(size, size, appConfig.background, "png", originalIconPath, outputFile);
+                await action;
+                // filePromises.push(sharp(originalIconPath).resize(size, size).toFile(path.join(platformPath, iconSize)));
             }
         } else {
             for(iconSize in iosIcons) {
                 var size = parseInt(iosIcons[iconSize].split(":")[0], 10);
+                var outputFile = path.join(platformPath, iconSize);
                 if(size == 1024) {
+                    // var noAlphaBackgroundColor = "#00"+appConfig.background.substring(1, appConfig.background.length);
+                    // console.log(noAlphaBackgroundColor);
+                    // var action = createImageWithFullsizeIcon(size, size, appConfig.background, "png", originalIconPath, outputFile);
+                    // await action;
+                    filePromises.push(action);
                     filePromises.push(sharp(originalIconPath).resize(size, size).flatten().toFile(path.join(platformPath, iconSize)));
-                    // filePromises.push(sharp(originalIconPath).resize(size, size).background({r: 255, g: 255, b: 255, alpha: 1}).toFile(path.join(platformPath, iconSize)));
                 } else {
+                    // This approach show error that AppIcon83.5x83.5@2x~ipad not added to Archive bundle and you can't upload to AppStore
+                    // var action = createImageWithFullsizeIcon(size, size, appConfig.background, "png", originalIconPath, outputFile);
+                    // await action;
+                    filePromises.push(action);
                     filePromises.push(sharp(originalIconPath).resize(size, size).toFile(path.join(platformPath, iconSize)));
                 }
             }
@@ -1061,26 +1291,126 @@ async function generateSplashscreens(appConfig, appRootPath) {
         "Default-Portrait~ipad.png":"768:1024"
     }
 
+    var androidSplashscreens = {
+        "drawable-land-hdpi":"800:480",
+        "drawable-land-ldpi":"320:200",
+        "drawable-land-mdpi":"480:320",
+        "drawable-land-xhdpi":"1280:720",
+        "drawable-land-xxhdpi":"1600:960",
+        "drawable-land-xxxhdpi":"1920:1280",
+
+        "drawable-port-hdpi":"480:800",
+        "drawable-port-ldpi":"200:320",
+        "drawable-port-mdpi":"320:480",
+        "drawable-port-xhdpi":"720:1280",
+        "drawable-port-xxhdpi":"960:1600",
+        "drawable-port-xxxhdpi":"1280:1920",
+    }
 
     for(platform in platforms) {
         var pathFolder = path.join(platforms[platform])
+        var sources = null;
+        
+
         if(platform == "android") {
-           
-        } else {
-           for (screenshot in iosSplashscreens) {
-               var name = screenshot;
-               var width = parseInt(iosSplashscreens[screenshot].split(":")[0], 10);
-               var height = parseInt(iosSplashscreens[screenshot].split(":")[1], 10);
+            sources = androidSplashscreens;
+           // for (screenshot in androidSplashscreens) {
+           //     var name = screenshot;
+           //     var width = parseInt(androidSplashscreens[screenshot].split(":")[0], 10);
+           //     var height = parseInt(androidSplashscreens[screenshot].split(":")[1], 10);
                
-               var outputCordovaPath = path.join(pathFolder, "res", "screen", "ios", name);
-               var outputIOSPath = path.join(pathFolder, "platforms", "ios", appConfig.name.replace(/ /g, '\\ '), "Images.xcassets", "LaunchImage.launchimage", name);
+           //     var outputCordovaPath = path.join(pathFolder, "res", "screen", "android", name, ".png");
+           //     var outputAndroidPath = path.join(pathFolder, "platforms", "android", appConfig.name.replace(/ /g, '\\ '), "app", "src", "main", "res", name, "screen.png");
                 
-               await createImageWithCenterIcon(width, height, appConfig.splashscreen.background, "png", originalIconPath, outputIOSPath);
+           //     await createImageWithCenterIcon(width, height, appConfig.background, "png", originalIconPath, outputAndroidPath);
+
+           //     outputFile = path.join(pathFolder, "platforms", "android", appConfig.name.replace(/ /g, '\\ '), "app", "src", "main", "res", name, "screen.png");
+           // }
+        } else {
+            sources = iosSplashscreens;
+           // for (screenshot in iosSplashscreens) {
+           //     var name = screenshot;
+           //     var width = parseInt(iosSplashscreens[screenshot].split(":")[0], 10);
+           //     var height = parseInt(iosSplashscreens[screenshot].split(":")[1], 10);
+               
+           //     var outputCordovaPath = path.join(pathFolder, "res", "screen", "ios", name);
+           //     var outputIOSPath = path.join(pathFolder, "platforms", "ios", appConfig.name.replace(/ /g, '\\ '), "Images.xcassets", "LaunchImage.launchimage", name);
+                
+           //     await createImageWithCenterIcon(width, height, appConfig.background, "png", originalIconPath, outputIOSPath);
+               
+           //     outputFile = 
+           // }
+        }
+
+        for (screenshot in sources) {
+               var name = screenshot;
+               var width = parseInt(sources[screenshot].split(":")[0], 10);
+               var height = parseInt(sources[screenshot].split(":")[1], 10);
+               var outputFile = null;
+
+               if(platform == "android") {
+                    outputFile = path.join(pathFolder, "platforms", "android", "app", "src", "main", "res", name, "screen.png");
+               } else {
+                    outputFile = path.join(pathFolder, "platforms", "ios", appConfig.name.replace(/ /g, '\\ '), "Images.xcassets", "LaunchImage.launchimage", name);
+               }
+               
+               // var outputCordovaPath = path.join(pathFolder, "res", "screen", "ios", name);
+               // var outputIOSPath = path.join(pathFolder, "platforms", "ios", appConfig.name.replace(/ /g, '\\ '), "Images.xcassets", "LaunchImage.launchimage", name);
+                
+               await createImageWithCenterIcon(width, height, appConfig.background, "png", originalIconPath, outputFile);
                
            }
-        }
     }
     
+}
+
+async function createImageWithFullsizeIcon(width, height, background, format, iconPath, outputPath) {
+        var tempSourceDir = path.join(__dirname, "tmp_screenshot_in");
+        util.File.rmDir(tempSourceDir);
+        util.File.mkDir(tempSourceDir);
+
+        var templatePath = path.join(tempSourceDir, "tmp_template.png");
+               // Generate template path
+               await sharp({
+                    create: {
+                    width: width,
+                    height: height,
+                    channels: 4,
+                    background: { r: 255, g: 255, b: 255, alpha: 0 }
+                    }
+                })
+                .png()
+                .toFile(templatePath);
+
+                var iconWidth = width
+                var x = 0
+                var y = 0
+                var iconHeight = height
+                
+                var templateConfig = {
+                    "screenshot": {
+                        "x":x,
+                        "y":y,
+                        "width":iconWidth,
+                        "height":iconHeight
+                    }
+                }
+
+                var templateConfigPath = path.join(tempSourceDir, "tmp_config.json");
+                fs.writeFileSync(templateConfigPath, JSON.stringify(templateConfig));
+
+                var command = nodeInterpreter+" "+screengenerator
+                    + " --template \""+templatePath+"\""
+                    + " --config \""+templateConfigPath+"\""
+                    + " --backgroundColor \""+background+"\"" 
+                    + " --screenshot \""+iconPath+"\""
+                    + " --output \""+outputPath+"\""
+                    + " --size \""+width+"x"+height+"\"";       
+                
+                console.log(command);
+                shell.exec(command);
+
+                util.File.rmDir(tempSourceDir);
 }
 
 async function createImageWithCenterIcon(width, height, background, format, iconPath, outputPath) {
@@ -1246,6 +1576,7 @@ function createBundle(appConfig, platforms) {
         console.log("Direct bundle")
         for (platform in platforms) {
             var pathFolder = path.join(platforms[platform], "www");
+            console.log(pathFolder);
 
             shell.exec("cd "+pathFolder)
             shell.exec("pwd").output;
@@ -1259,7 +1590,6 @@ function createBundle(appConfig, platforms) {
                 util.File.rmDir(path.join(tempFolder, ".git"))
                 shell.exec("cp -r -v "+tempFolder+"/* "+pathFolder);
                 util.File.rmDir(tempFolder)
-                // shell.exec("mv -f -v "+tempFolder+" "+pathFolder);
             } else if(appConfig.Bundle.Direct.type =="hg") {
                 var tempFolder = path.join(pathFolder, "tmp");
                 util.File.rmDir(tempFolder)
@@ -1270,8 +1600,13 @@ function createBundle(appConfig, platforms) {
                 shell.exec("cp -r -v "+tempFolder+"/* "+pathFolder);
                 util.File.rmDir(tempFolder)
             }
+            // if(appConfig.Bundle.Direct.afterRun != undefined) {
+            //     shell.exec("cd "+tempFolder)
+            //     shell.exec(appConfig.Bundle.Direct.afterRun);
+            // }
+
             console.log("Cordova folder:" +platforms[platform])
-            shell.exec("cd "+platforms[platform]+" && cordova prepare");
+            // shell.exec("cd "+platforms[platform]+" && cordova prepare");
         }
     }
 }
@@ -1442,50 +1777,50 @@ function generatePluginInstallViaPlugman(pluginOption, appDirectory) {
 }
 
 
-async function testPerformManulaChanges(appConfig, platforms) {
-    for(platform in platforms) {
-        var pathFolder = path.join(platforms[platform])
-        if(platform == "android") {
+// async function testPerformManulaChanges(appConfig, platforms) {
+//     for(platform in platforms) {
+//         var pathFolder = path.join(platforms[platform])
+//         if(platform == "android") {
 
-        } else {
-            var projectName = appConfig.name;
-            var googleServicePath = path.join(pathFolder, "platforms", "ios","GoogleService-Info.plist");
-            var projectPath = path.join(pathFolder, "platforms", "ios", projectName+".xcodeproj","project.pbxproj");
-            var proj = new xcode.project(projectPath);
-            proj = proj.parseSync();
-            var udid = proj.getFirstTarget().uuid
-            var pbxBuildConfigurationSection = proj.pbxXCBuildConfigurationSection()
-            console.log(projectName);
-            for (key in pbxBuildConfigurationSection){
-                var newKey = key;
-                if(pbxBuildConfigurationSection[key].name == "Debug") {
-                    var debugBuildConfiguration = pbxBuildConfigurationSection[key].buildSettings['GCC_PREPROCESSOR_DEFINITIONS'];
-                    if(debugBuildConfiguration && debugBuildConfiguration.indexOf("\"DEBUG=1\"") < 0) {
-                        pbxBuildConfigurationSection[key].buildSettings['GCC_PREPROCESSOR_DEFINITIONS'].push("\"DEBUG=1\"");
-                    } else {
-                        pbxBuildConfigurationSection[key].buildSettings['GCC_PREPROCESSOR_DEFINITIONS'] = [];
-                        pbxBuildConfigurationSection[key].buildSettings['GCC_PREPROCESSOR_DEFINITIONS'].push("\"$(inherited)\"");
-                        pbxBuildConfigurationSection[key].buildSettings['GCC_PREPROCESSOR_DEFINITIONS'].push("\"DEBUG=1\"");
-                    }
+//         } else {
+//             var projectName = appConfig.name;
+//             var googleServicePath = path.join(pathFolder, "platforms", "ios","GoogleService-Info.plist");
+//             var projectPath = path.join(pathFolder, "platforms", "ios", projectName+".xcodeproj","project.pbxproj");
+//             var proj = new xcode.project(projectPath);
+//             proj = proj.parseSync();
+//             var udid = proj.getFirstTarget().uuid
+//             var pbxBuildConfigurationSection = proj.pbxXCBuildConfigurationSection()
+//             console.log(projectName);
+//             for (key in pbxBuildConfigurationSection){
+//                 var newKey = key;
+//                 if(pbxBuildConfigurationSection[key].name == "Debug") {
+//                     var debugBuildConfiguration = pbxBuildConfigurationSection[key].buildSettings['GCC_PREPROCESSOR_DEFINITIONS'];
+//                     if(debugBuildConfiguration && debugBuildConfiguration.indexOf("\"DEBUG=1\"") < 0) {
+//                         pbxBuildConfigurationSection[key].buildSettings['GCC_PREPROCESSOR_DEFINITIONS'].push("\"DEBUG=1\"");
+//                     } else {
+//                         pbxBuildConfigurationSection[key].buildSettings['GCC_PREPROCESSOR_DEFINITIONS'] = [];
+//                         pbxBuildConfigurationSection[key].buildSettings['GCC_PREPROCESSOR_DEFINITIONS'].push("\"$(inherited)\"");
+//                         pbxBuildConfigurationSection[key].buildSettings['GCC_PREPROCESSOR_DEFINITIONS'].push("\"DEBUG=1\"");
+//                     }
 
-                    debugBuildConfiguration = pbxBuildConfigurationSection[key].buildSettings['OTHER_SWIFT_FLAGS'];
-                    if(debugBuildConfiguration && debugBuildConfiguration.indexOf("-D DEBUG") < 0) {
-                        // Remove last \" character from value
-                        var otherSwiftFlag = pbxBuildConfigurationSection[key].buildSettings['OTHER_SWIFT_FLAGS'].substring(0, pbxBuildConfigurationSection[key].buildSettings['OTHER_SWIFT_FLAGS'].length-1);
-                        pbxBuildConfigurationSection[key].buildSettings['OTHER_SWIFT_FLAGS'] = otherSwiftFlag+" -D DEBUG\"";
-                        // console.log(pbxBuildConfigurationSection[key]);
-                    } else {
-                        pbxBuildConfigurationSection[key].buildSettings['OTHER_SWIFT_FLAGS'] = "\"$(inherited) -D DEBUG\"";
-                    }
-                    console.log(pbxBuildConfigurationSection[key]);
-                }
-            }
+//                     debugBuildConfiguration = pbxBuildConfigurationSection[key].buildSettings['OTHER_SWIFT_FLAGS'];
+//                     if(debugBuildConfiguration && debugBuildConfiguration.indexOf("-D DEBUG") < 0) {
+//                         // Remove last \" character from value
+//                         var otherSwiftFlag = pbxBuildConfigurationSection[key].buildSettings['OTHER_SWIFT_FLAGS'].substring(0, pbxBuildConfigurationSection[key].buildSettings['OTHER_SWIFT_FLAGS'].length-1);
+//                         pbxBuildConfigurationSection[key].buildSettings['OTHER_SWIFT_FLAGS'] = otherSwiftFlag+" -D DEBUG\"";
+//                         // console.log(pbxBuildConfigurationSection[key]);
+//                     } else {
+//                         pbxBuildConfigurationSection[key].buildSettings['OTHER_SWIFT_FLAGS'] = "\"$(inherited) -D DEBUG\"";
+//                     }
+//                     console.log(pbxBuildConfigurationSection[key]);
+//                 }
+//             }
 
-            // fs.writeFileSync(projectPath, proj.writeSync());
+//             // fs.writeFileSync(projectPath, proj.writeSync());
 
-        }
-}
-}
+//         }
+// }
+// }
 
 async function performManulaChanges(appConfig, platforms) {
     for(platform in platforms) {

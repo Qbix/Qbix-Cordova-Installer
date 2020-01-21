@@ -19,13 +19,6 @@ platform :ios do
 
   desc "Submit to Crashlytics, Browserstack "
   lane :beta do
-    automatic_code_signing(
-      path: "<project_name>.xcodeproj",
-      use_automatic_signing: true,
-      team_id: "<team_id>",
-      targets: ["<project_name>"]
-    )
-    build_app(configuration: "Debug", scheme: "<project_name>",workspace: "<project_name>.xcworkspace",include_bitcode: true,export_xcargs: "-allowProvisioningUpdates")
     #upload_to_crashlytics
     #upload_to_browserstack
   end
@@ -34,6 +27,17 @@ platform :ios do
 
   #to install fastlane plugin: fastlane add_plugin browserstack
   #function_upload_to_browserstack
+
+  desc "Build debug IPA"
+  lane :build_debug do
+    automatic_code_signing(
+      path: "<project_name>.xcodeproj",
+      use_automatic_signing: true,
+      team_id: "<team_id>",
+      targets: ["<project_name>"]
+    )
+    gym(configuration: "Debug", scheme: "<project_name>",workspace: "<project_name>.xcworkspace",include_bitcode: true,export_xcargs: "-allowProvisioningUpdates")
+  end
   
   desc "Build release IPA"
   lane :build do

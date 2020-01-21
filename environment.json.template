@@ -1,0 +1,5 @@
+{
+    "php":"/Applications/MAMP/bin/php/php7.3.1/bin/php"
+    "node":"/usr/local/bin/node"
+    "screengenerator":"<path to screenshot generator>"
+}

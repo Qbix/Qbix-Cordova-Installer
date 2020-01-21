@@ -1,3 +1,9 @@
+1. Setup Environment
+
+
+
+
+
 Cordova 6.x
 
 Common:
@@ -73,41 +79,3 @@ Add SnapshotHelper.swift
     BCS:
     groupapp
     groups
-
-
-
-
-
-
-
-
-
-// Please README next manually actions
-// For now, will use cordova v6.x
-// Android:
-//     1. Setup sourceCompatibility to 1.7. Espesially for safariviewcontroller gradle
-//
-//     Additional
-//     google() repository available from gradle 4.4 and we only support Cordova 6.x
-//     Works without resolve plugin
-// 2. Change all + in dependecies on 9.0.0 for com.google.android.gms libs and 12.0.1 for firebase libs. Also will add next plugins:
-//     cordova plugin add cordova-android-play-services-gradle-release --fetch --variable PLAY_SERVICES_VERSION=9.0.0
-//     cordova plugin add cordova-android-firebase-gradle-release --fetch --variable FIREBASE_VERSION=12.+
-// 0. Setup gradle version to distributionUrl=https\://services.gradle.org/distributions/gradle-3.5-all.zip
-//     1. Setup MainActivity
-//     2.5 In fcm-plugin will add latest version of gradle like 3.2.0 and setup for all gms plugin 11.4.2 (version may change. See error logs)
-//     3. If you receive ERROR: spawn EACCES, please get executable permission to gradlew inside project
-//     chmod +x /Users/<username>/Documents/<project name>/build/android/<project name>/platforms/android/gradlew
-//     Create gradle.properties in Android project folder and will add next "org.gradle.jvmargs=-Xmx1536M"
-
-// iOS
-//     1. Settle AppDelegate
-//     2. Add to podfile pod 'SwiftyRSA', '1.2.0', "use_frameworks!" and setup minimal ios version to 8.3
-//     3. Run "pod install"
-//     ?4. "cd plugins/com.q.cordova/scripts/" and run "node add_swift_support.js"
-//     ?5. In QSignManger.m add #import "Track_Email-Swift.h", where  Track_Email == "Track Email" name of app
-//     6. Check splashscreens and remove no needed
-//     ?7. LOCAL NOTIFICATIONS PLUGIN (https://github.com/katzer/cordova-plugin-local-notifications) doesn't allow receive PN(without content-available:1) and intercept it.
-//        Need to fix or remove this plugin!!!!!
-//     8. Change orientation. Allow only portrait
-//DONE      9. Make sure that in Info.plist present UIViewControllerBasedStatusBarAppearance = false

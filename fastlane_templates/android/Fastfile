@@ -5,6 +5,7 @@ platform :android do
   lane :beta do
     gradle(task: "clean assembleDebug")
     #upload_to_crashlytics
+    # Install plugin fastlane add_plugin browserstack before
     #upload_to_browserstack
   end
 
@@ -43,7 +44,8 @@ platform :android do
     capture_android_screenshots(
       locales: [<languages>],
       output_directory: "fastlane/metadata/raw",
-      skip_open_summary: 1,
+      skip_open_summary: true,
+      test_instrumentation_runner: "android.support.test.runner.AndroidJUnitRunner",
       # clear_previous_screenshots: true,
       launch_arguments:[<screenshots_array>],
       app_apk_path: "app/build/outputs/apk/debug/app-debug.apk",
