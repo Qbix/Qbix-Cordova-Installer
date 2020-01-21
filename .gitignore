@@ -5,3 +5,4 @@ package-lock.json
 .idea/
 working_en-US.json
 tmp_screenshot_in/
+environment.json
