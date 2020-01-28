@@ -26,7 +26,7 @@ var ops = stdio.getopt({
     // 'php': {key: 'p', args: 1, mandatory: true, description: 'Full path to PHP interpreter'},
     // 'node': {key: 'n', args: 1, mandatory: true, description: 'Full path to node interpreter'},
     // 'screengenerator': {key: 's', args: 1, mandatory: true, description: 'Full path to screengenerator'},
-    'create':{description: 'Create new project. --create <FULL_PATH_TO_FOLDER> <URL_TO_GIT>'},
+    'create':{description: "Create new project. --create <FULL_PATH_TO_FOLDER> <URL_TO_GIT>(Optional)"},
     'update':{description: 'Pull latest changes for project'},
     'build':{description: 'Build app. Remove previous'},
     'screenshots':{description: 'Make screenshots'},
@@ -119,7 +119,6 @@ async function main() {
 
     if(CREATE) {
         const folderName = ops.args[0];
-        const gitUrl = ops.args[1];
         // Create folder
         const folderPath = path.join(PWD, folderName);
         const markerFilePath = path.join(folderPath, MARKER_FILE_NAME);
@@ -129,8 +128,12 @@ async function main() {
         }
         createFolderIfNotExist(folderPath);
 
-        // Download here from github
-        shell.exec("git clone " + gitUrl +" "+folderPath)
+
+        const gitUrl = ops.args[1];
+        if(gitUrl != null) {
+            // Download here from github
+            shell.exec("git clone " + gitUrl + " " + folderPath);
+        }
 
         // Create marker file
         fs.writeFileSync(markerFilePath, "");
@@ -159,7 +162,7 @@ async function main() {
             if (!readlineSync.keyInYN('Previous build will be removed. Continue?')) {
                 return ;
             }
-            util.File.rmDir(buildPath);
+            await util.File.rmDir(buildPath);
         }
 
         console.log("BUILD");
@@ -219,6 +222,10 @@ async function main() {
         console.log("---cordovaBuild---");
         cordovaBuild(BUILD_AFTER,platforms)
     }
+
+    // if(MANUAL) {
+    //     await testPerformManulaChanges(appConfig, platforms)
+    // }
 
     if(SCREENSHOTS) {
         console.log("---captureScreenshots---");
@@ -343,14 +350,17 @@ async function distributeBeta(appConfig, platforms) {
         var pathFolder = path.join(platforms[platform])
         var projectPath = path.join(pathFolder, "platforms", platform)
 
+        console.log(projectPath);
+
         let action = null;
         if(BETA == "fabric") {
             action= "upload_to_crashlytics"
         } else if(BETA == "browserstack") {
+            execWithLog("cd " + projectPath + " && fastlane add_plugin browserstack");
             action= "upload_to_browserstack"
         }
         if(action != null) {
-            execWithLog("cd " + projectPath + " && fastlane "+platform+" "+action);
+            execWithLog("cd " + projectPath + " && fastlane "+action);
         }
     }
 }
@@ -360,6 +370,11 @@ function cordovaBuild(BUILD_AFTER,platforms) {
         for(platform in platforms) {
             shell.cd(platforms[platform]);
             execWithLog('cordova build ' + platform);
+            if(platform == "ios") {
+                console.log("---final pod install---");
+                let pathFolder = path.join(platforms[platform]);
+                execWithLog("cd "+path.join(pathFolder, "platforms", platform)+" && pod install");
+            }
         }
     }
 }
@@ -1793,6 +1808,44 @@ function generatePluginInstallViaPlugman(pluginOption, appDirectory) {
     return commands
 }
 
+// async function testPerformManulaChanges(appConfig, platforms) {
+//     for(platform in platforms) {
+//         var pathFolder = path.join(platforms[platform])
+//         if(platform == "android") {
+//
+//         } else {
+//             var projectName = appConfig.name;
+//             var projectPath = path.join(pathFolder, "platforms", "ios", projectName+".xcodeproj","project.pbxproj");
+//             var proj = new xcode.project(projectPath);
+//             proj = proj.parseSync();
+//
+//             // let value =  proj.getBuildProperty("GCC_PREPROCESSOR_DEFINITIONS", "Debug");
+//             addDebugBuildProperty(proj, projectName);
+//             fs.writeFileSync(projectPath, proj.writeSync());
+//
+//             // var configurations = nonComments(proj.pbxXCBuildConfigurationSection()),
+//             //     key, configuration;
+//             //
+//             // for (key in configurations){
+//             //     configuration = configurations[key];
+//             //     if (!build_name || configuration.name === build_name){
+//             //         configuration.buildSettings[prop] = value;
+//             //     }
+//             // }
+//
+//             // var udid = proj.getFirstTarget().uuid
+//             // var pbxBuildConfigurationSection = proj.pbxXCBuildConfigurationSection()
+//             // for (key in pbxBuildConfigurationSection){
+//             //     if(pbxBuildConfigurationSection[key] != undefined && pbxBuildConfigurationSection[key].buildSettings != undefined && pbxBuildConfigurationSection[key].buildSettings['SWIFT_VERSION'] != undefined) {
+//             //         pbxBuildConfigurationSection[key].buildSettings['SWIFT_VERSION'] = "4.0";
+//             //     }
+//             // }
+//             // fs.writeFileSync(projectPath, proj.writeSync());
+//         }
+//     }
+// }
+
+
 
 // async function testPerformManulaChanges(appConfig, platforms) {
 //     for(platform in platforms) {
@@ -1879,10 +1932,26 @@ async function performManulaChanges(appConfig, platforms) {
                 '</plist>')
             }
 
+            //Modify Pod file
+            let podfilePath = path.join(pathFolder, "platforms", "ios", "Podfile");
+            var content = fs.readFileSync(podfilePath, "utf8");
+            content = insert(content, content.indexOf('project'), "use_frameworks!\n\t");
+            content = insert(content, content.lastIndexOf('end'), "\tpod \"SimpleKeychain\"\n");
+            content = content+"\n"+
+                "post_install do |installer|\n"+
+                "\tinstaller.pods_project.targets.each do |target|\n"+
+                "\t\ttarget.build_configurations.each do |config|\n"+
+                "\t\t\tconfig.build_settings['ENABLE_BITCODE'] = 'NO'\n"+
+                "\t\tend\n"+
+                "\tend\n"+
+                "end\n";
+            console.log(content);
+            fs.writeFileSync(podfilePath, content);
+
             // Run pod install
             console.log("Pod install");
-            var podfilePath = path.join(pathFolder, "platforms", "ios");
-            execWithLog("cd "+podfilePath+" && pwd && pod install");
+            podfilePath = path.join(pathFolder, "platforms", "ios");
+            execWithLog("cd "+podfilePath+" && pod install");
 
             // Add GoogleService-Info.plist file
             var projectName = appConfig.name;
@@ -2059,6 +2128,11 @@ async function performManulaChanges(appConfig, platforms) {
 
             
             fs.writeFileSync(projectPath, proj.writeSync());
+
+            var proj = new xcode.project(projectPath);
+            proj = proj.parseSync();
+            addDebugBuildProperty(proj, projectName);
+            fs.writeFileSync(projectPath, proj.writeSync());
         }
     }
 }
@@ -2081,6 +2155,57 @@ function addBuildFile(project, path, opt, group) {
         // this.addToPbxSourcesBuildPhase(file);       // PBXSourcesBuildPhase
     
         return file;
+}
+
+function addDebugBuildProperty(proj, appName) {
+    var configurations = nonComments(proj.pbxXCBuildConfigurationSection()),
+        key, configuration;
+    let build_name = "Debug";
+
+    for (key in configurations){
+        configuration = configurations[key];
+        if ((!build_name || configuration.name === build_name) && (configuration.buildSettings["PRODUCT_NAME"]==appName)) {
+            const DEBUG_PROP = "\"DEBUG=1\"";
+            const GCC_PREPROCESSOR_PROP_KEY = "GCC_PREPROCESSOR_DEFINITIONS";
+            let gccPreprocessor = configuration.buildSettings[GCC_PREPROCESSOR_PROP_KEY];
+            if(gccPreprocessor == undefined) {
+                gccPreprocessor = ["\"$(inherited)\""];
+            }
+
+            if(gccPreprocessor.indexOf(DEBUG_PROP) == -1) {
+                gccPreprocessor.push(DEBUG_PROP);
+            }
+
+            configuration.buildSettings[GCC_PREPROCESSOR_PROP_KEY] = gccPreprocessor;
+
+
+            // OTHER_SWIFT_FLAGS = "$(inherited) -D COCOAPODS -D DEBUG";
+            const SWIFT_DEBUG_PROP = "-D DEBUG";
+            const OTHER_SWIFT_FLAGS_PROP_KEY = "OTHER_SWIFT_FLAGS";
+            configuration.buildSettings[OTHER_SWIFT_FLAGS_PROP_KEY] = "\"$(inherited) -D COCOAPODS -D DEBUG\"";
+        }
+    }
+}
+
+function nonComments(obj) {
+    COMMENT_KEY = /_comment$/
+    var keys = Object.keys(obj),
+        newObj = {}, i = 0;
+
+    for (i; i < keys.length; i++) {
+        if (!COMMENT_KEY.test(keys[i])) {
+            newObj[keys[i]] = obj[keys[i]];
+        }
+    }
+
+    return newObj;
+}
+
+function insert(source, index, string) {
+    if (index > 0)
+        return source.substring(0, index) + string + source.substring(index, source.length);
+
+    return string + source;
 }
 
 function addUITestTarget(project, name, subfolder, files) {
