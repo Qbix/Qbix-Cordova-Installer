@@ -4,9 +4,14 @@
 Add path to node, php interpreter and Screenshot-Production-GenJS index.js
 
 2. Create project
-node <full_path_to_script>/index.js create <Folder Name>   
-   
 
+Follow command create folder with name <Project Name> in current folder
+
+```node <full_path_to_script>/index.js create <Project Name>```
+   
+Copy all project files to new created folder
+
+3. 
 
 
 

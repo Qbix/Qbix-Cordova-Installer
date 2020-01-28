@@ -26,7 +26,7 @@ var ops = stdio.getopt({
     // 'php': {key: 'p', args: 1, mandatory: true, description: 'Full path to PHP interpreter'},
     // 'node': {key: 'n', args: 1, mandatory: true, description: 'Full path to node interpreter'},
     // 'screengenerator': {key: 's', args: 1, mandatory: true, description: 'Full path to screengenerator'},
-    'create':{description: "Create new project. --create <FULL_PATH_TO_FOLDER> <URL_TO_GIT>(Optional)"},
+    'create':{description: "Create new project. --create <PROJECT_NAME> <URL_TO_GIT>(Optional)"},
     'update':{description: 'Pull latest changes for project'},
     'build':{description: 'Build app. Remove previous'},
     'screenshots':{description: 'Make screenshots'},
@@ -127,6 +127,7 @@ async function main() {
 
         // Create marker file
         fs.writeFileSync(markerFilePath, "");
+        return;
     }
 
 
