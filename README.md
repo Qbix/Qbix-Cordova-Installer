@@ -1,5 +1,13 @@
 1. Setup Environment
 
+```cp environment.json.template environment.json```
+Add path to node, php interpreter and Screenshot-Production-GenJS index.js
+
+2. Create project
+node <full_path_to_script>/index.js create <Folder Name>   
+   
+
+
 
 
 

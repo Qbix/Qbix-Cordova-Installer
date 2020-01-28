@@ -106,16 +106,6 @@ async function main() {
     const configPath = path.join(PWD, CONFIG_FILE_NAME);
     const buildPath = path.join(PWD, "build");
 
-    appConfig = require(configPath);
-    const appNameForOS = appConfig.name.split(" ").join('')
-
-    // Prepare platforms
-    const appRootPath = path.dirname(configPath)
-    const appBuildRootPath = path.join(appRootPath, "build")
-    for (platform in appConfig.platforms) {
-        var platformAppDirectory = path.join(appBuildRootPath, appConfig.platforms[platform]);
-        platforms[appConfig.platforms[platform]] = path.join(platformAppDirectory, appNameForOS)
-    }
 
     if(CREATE) {
         const folderName = ops.args[0];
@@ -137,6 +127,18 @@ async function main() {
 
         // Create marker file
         fs.writeFileSync(markerFilePath, "");
+    }
+
+
+    appConfig = require(configPath);
+    const appNameForOS = appConfig.name.split(" ").join('')
+
+    // Prepare platforms
+    const appRootPath = path.dirname(configPath)
+    const appBuildRootPath = path.join(appRootPath, "build")
+    for (platform in appConfig.platforms) {
+        var platformAppDirectory = path.join(appBuildRootPath, appConfig.platforms[platform]);
+        platforms[appConfig.platforms[platform]] = path.join(platformAppDirectory, appNameForOS)
     }
 
     if(UPDATE || BUILD) {
