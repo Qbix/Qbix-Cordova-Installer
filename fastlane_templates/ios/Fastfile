@@ -36,7 +36,7 @@ platform :ios do
       team_id: "<team_id>",
       targets: ["<project_name>"]
     )
-    gym(configuration: "Debug", scheme: "<project_name>",workspace: "<project_name>.xcworkspace",include_bitcode: true,export_xcargs: "-allowProvisioningUpdates")
+    build_app(configuration: "Debug", scheme: "<project_name>",workspace: "<project_name>.xcworkspace",include_bitcode: true,xcargs: "-allowProvisioningUpdates")
   end
   
   desc "Build release IPA"
@@ -47,7 +47,7 @@ platform :ios do
       team_id: "<team_id>",
       targets: ["<project_name>"]
     )
-    build_app(scheme: "<project_name>",workspace: "<project_name>.xcworkspace",include_bitcode: true,export_xcargs: "-allowProvisioningUpdates")
+    build_app(scheme: "<project_name>",workspace: "<project_name>.xcworkspace",include_bitcode: true,xcargs: "-allowProvisioningUpdates")
   end
 
   desc "Release to Apple Store[Build,Screenshots,Deploy]"

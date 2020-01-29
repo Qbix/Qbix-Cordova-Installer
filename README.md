@@ -7,13 +7,23 @@ Add path to node, php interpreter and Screenshot-Production-GenJS index.js
 
 Follow command create folder with name <Project Name> in current folder
 
-```node <full_path_to_script>/index.js create <Project Name>```
+```node <full_path_to_script>/index.js --create <Project Name>```
    
 Copy all project files to new created folder
 
-3. 
+3. Build project
 
+This command build project for platforms which set in config.json["platforms"] array
 
+```node <full_path_to_script>/index.js --build```
+
+4. Deploy to Fabric
+
+```node <full_path_to_script>/index.js --beta fabric```
+
+5. Deploy to Browserstack
+
+```node <full_path_to_script>/index.js --beta browserstack```
 
 
 
