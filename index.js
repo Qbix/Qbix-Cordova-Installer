@@ -210,7 +210,7 @@ async function main() {
         //update metadata
         console.log("---updateMetadata---");
         updateMetadata(appConfig, platforms);
-        //create bundle
+        // create bundle
         console.log("---createBundle---");
         createBundle(appConfig, platforms)
         //create config.json file for main Q plugin
@@ -873,7 +873,7 @@ async function captureScreenshots(appConfig, platforms) {
             var screenshotsPath = path.join(projectPath, "fastlane", "screenshots","raw");
             var filePromises = [];
             var filesToRemove = [];
-
+            createFolderIfNotExist(screenshotsPath);
             var directories = getDirectories(screenshotsPath)
             for(directoryIndex in directories) {
                 var directory = directories[directoryIndex];
@@ -1574,6 +1574,7 @@ function createBundle(appConfig, platforms) {
 
         for (var dirIndex in plugins) {
             var pluginDir = plugins[dirIndex]
+            console.log(pluginDir);
             shell.cd(pluginDir);
             stdout = shell.exec('hg paths', {silent: true}).stdout;
             var pluginUrl = stdout.split("=")[1].trim()
