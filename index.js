@@ -1707,7 +1707,7 @@ function copyQConfig(appConfig, platforms) {
 function createFolderIfNotExist(pathFolder) {
     if (!fs.existsSync(pathFolder)){
         console.log("MkDir "+pathFolder);
-        fs.mkdirSync(pathFolder);
+        fs.mkdirSync(pathFolder, { recursive: true });
     }
 }
 
