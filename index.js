@@ -343,7 +343,11 @@ async function deploy(appConfig, platforms) {
         var pathFolder = path.join(platforms[platform])
         var projectPath = path.join(pathFolder, "platforms", platform)
 
-        execWithLog("cd " + projectPath + " && fastlane release_no_screenshot");
+        let command = "cd " + projectPath + " && fastlane release_no_screenshot";
+        if(platforms[platform] == "ios") {
+            command = "export FASTLANE_USER="+appConfig["signing"]["ios"]["appleId"]+" && export FASTLANE_PASSWORD="+appConfig["signing"]["ios"]["applePassword"]+ " && "+command;
+        }
+        execWithLog(command);
     }
 }
 
