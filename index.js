@@ -862,7 +862,9 @@ async function captureScreenshots(appConfig, platforms) {
 
             // Run emulator for Android device
             // Android_screenshotgenerator_emulator
-            var emulatorRunning = shellEmulator.exec("emulator -avd AndroidScreenshotgeneratorEmulator", {async:true, silent:true})
+            let runEmulatorCommand = "emulator -avd AndroidScreenshotgeneratorEmulator";
+            var emulatorRunning = shellEmulator.exec(runEmulatorCommand, {async:true, silent:true});
+            console.log(emulatorRunning);
             var command = "cd " + projectPath + " && fastlane "+platform+" screenshots";
             execWithLog(command);
             emulatorRunning.kill();
@@ -870,7 +872,9 @@ async function captureScreenshots(appConfig, platforms) {
 
             // Run emulator for Android Tablet
             // Android_tablet_screenshotgenerator_emulator
-            emulatorRunning = shellEmulator.exec("emulator -avd AndroidTabletScreenshotgeneratorEmulator", {async:true, silent:true})
+            runEmulatorCommand = "emulator -avd AndroidTabletScreenshotgeneratorEmulator";
+            emulatorRunning = shellEmulator.exec(runEmulatorCommand, {async:true, silent:true})
+            console.log(runEmulatorCommand+ "; Result:"+emulatorRunning);
             var command = "cd " + projectPath + " && fastlane "+platform+" screenshots";
             execWithLog(command);
             emulatorRunning.kill();
