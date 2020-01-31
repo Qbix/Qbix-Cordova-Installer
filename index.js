@@ -33,6 +33,8 @@ var ops = stdio.getopt({
     'framing':{description: 'Add frames to existing screenshots'},
     'beta':{args: 1, description: 'Distribute to beta. Available "fabric", "browserstack"'},
     'deploy':{description: 'Deploy release to Google Play/App Store'},
+    'android':{description: 'Do action for android. If skip, will take platforms from config file'},
+    'ios':{description: 'Do action for iOS. If skip, will take platforms from config file'},
 
     'full_create': {description: 'Create app, Install plugins, Update bundle'},
     'update_plugin': {description: 'Install/Update Plugins, Update bundle'},
@@ -63,6 +65,8 @@ async function main() {
     var CAPTURE_SCREENSHOTS = false;
     var FRAME_SCREENSHOTS = false;
     var BUILD_AFTER = true
+    var ANDROID = false;
+    var IOS = false;
 
 
     //NEW
@@ -83,6 +87,8 @@ async function main() {
     FRAMING = ops.framing;
     BETA = ops.beta;
     DEPLOY = ops.deploy;
+    ANDROID = ops.android;
+    IOS = ops.ios;
 
 
 
@@ -132,6 +138,15 @@ async function main() {
 
 
     appConfig = require(configPath);
+    if(ANDROID || IOS) {
+        appConfig.platforms = [];
+        if(ANDROID){
+            appConfig.platforms.push("android");
+        }
+        if(IOS) {
+            appConfig.platforms.push("ios");
+        }
+    }
     const appNameForOS = appConfig.name.split(" ").join('')
 
     // Prepare platforms
@@ -159,22 +174,21 @@ async function main() {
             console.error("Not found config.json in current folder: " + PWD);
             return;
         }
-
-
-        if(fs.existsSync(buildPath)) {
-            if (!readlineSync.keyInYN('Previous build will be removed. Continue?')) {
-                return ;
-            }
-            await util.File.rmDir(buildPath);
-        }
-
-        console.log("BUILD");
-       
        
         createFolderIfNotExist(appBuildRootPath);
 
         // Create separate project for each platform
         for (platform in appConfig.platforms) {
+            const platformName = appConfig.platforms[platform];
+            const buildPathForPlatform = path.join(buildPath, platformName);
+            if(fs.existsSync(buildPathForPlatform)) {
+                if (!readlineSync.keyInYN('Previous '+platformName+' build will be removed. Continue?')) {
+                    return ;
+                }
+                await util.File.rmDir(buildPathForPlatform);
+            }
+
+            console.log("BUILD");
             var platformAppDirectory = path.join(appBuildRootPath, appConfig.platforms[platform]);
             console.log(platformAppDirectory);
             createFolderIfNotExist(platformAppDirectory);
@@ -1686,7 +1700,7 @@ function getDirectories(srcpath) {
 function copyQConfig(appConfig, platforms) {
     var config = createQConfigFile(appConfig);
 
-    var configFilename = "config.json"
+    var configFilename = "config.json";
     for(platform in platforms) {
         var pathFolder = path.join(platforms[platform])
         if (fs.existsSync(pathFolder)) {
@@ -1698,7 +1712,6 @@ function copyQConfig(appConfig, platforms) {
                 createFolderIfNotExist(iosResourcePath);
                 fs_extra.writeJsonSync(path.join(iosResourcePath, configFilename), config)
                 var projectPath = path.join(pathFolder, '/platforms/ios/', appConfig.name+'.xcodeproj/project.pbxproj');
-                var proj = new xcode.project(projectPath);
                 var proj = new xcode.project(projectPath);
                 proj = proj.parseSync();
                 proj.addResourceFile(configFilename);
