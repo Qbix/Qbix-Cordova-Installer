@@ -860,11 +860,15 @@ async function captureScreenshots(appConfig, platforms) {
                 util.File.rmDir(phoneScreenshotsPath);
             }
 
+            //Remove all screenshots
+            let screenshotsPathSource = path.join(projectPath, "fastlane", "metadata", "raw");
+            fs_extra.emptyDirSync(screenshotsPathSource);
+
             // Run emulator for Android device
             // Android_screenshotgenerator_emulator
             let runEmulatorCommand = "emulator -avd AndroidScreenshotgeneratorEmulator";
             var emulatorRunning = shellEmulator.exec(runEmulatorCommand, {async:true, silent:true});
-            console.log(emulatorRunning);
+            console.log(runEmulatorCommand+"; Result: "+JSON.stringify(emulatorRunning));
             var command = "cd " + projectPath + " && fastlane "+platform+" screenshots";
             execWithLog(command);
             emulatorRunning.kill();
@@ -874,11 +878,14 @@ async function captureScreenshots(appConfig, platforms) {
             // Android_tablet_screenshotgenerator_emulator
             runEmulatorCommand = "emulator -avd AndroidTabletScreenshotgeneratorEmulator";
             emulatorRunning = shellEmulator.exec(runEmulatorCommand, {async:true, silent:true})
-            console.log(runEmulatorCommand+ "; Result:"+emulatorRunning);
+            console.log(runEmulatorCommand+ "; Result:"+JSON.stringify(emulatorRunning));
             var command = "cd " + projectPath + " && fastlane "+platform+" screenshots";
             execWithLog(command);
             emulatorRunning.kill();
         } else {
+            let screenshotsPathSource = path.join(projectPath, "fastlane", "screenshots","raw");
+            fs_extra.emptyDirSync(screenshotsPathSource);
+
             var command = "cd " + projectPath + " && fastlane "+platform+" screenshots";
             execWithLog(command);
         }
@@ -1488,13 +1495,13 @@ async function createImageWithCenterIcon(width, height, background, format, icon
                 .png()
                 .toFile(templatePath);
 
-                var iconWidth = width*0.5
-                var x = width*0.25
+                var iconWidth = width*0.9
+                var x = width*0.05
                 var y = height/2 - iconWidth/2
                 if(height < width) {
-                    iconWidth = height*0.5
+                    iconWidth = height*0.9
                     x = width/2 - iconWidth/2
-                    y = height*0.25
+                    y = height*0.05
                 }
                 var iconHeight = iconWidth
                 
