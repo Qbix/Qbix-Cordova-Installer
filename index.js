@@ -106,6 +106,7 @@ async function main() {
     console.log(ops);
 
     const PWD = process.env.PWD;
+    console.log(PWD)
     const MARKER_FILE_NAME=".qbix_cordova_installer";
     const CONFIG_FILE_NAME="config.json";
 
@@ -358,8 +359,10 @@ async function deploy(appConfig, platforms) {
         var projectPath = path.join(pathFolder, "platforms", platform)
 
         let command = "cd " + projectPath + " && fastlane release_no_screenshot";
-        if(platforms[platform] == "ios") {
-            command = "export FASTLANE_USER="+appConfig["signing"]["ios"]["appleId"]+" && export FASTLANE_PASSWORD="+appConfig["signing"]["ios"]["applePassword"]+ " && "+command;
+        if(platform == "ios") {
+            execWithLog("export FASTLANE_USER=\""+appConfig["signing"]["ios"]["appleId"]+"\"");
+            execWithLog("export FASTLANE_PASSWORD=\""+appConfig["signing"]["ios"]["applePassword"]+"\"");
+            // command = "export FASTLANE_USER="+appConfig["signing"]["ios"]["appleId"]+" && export FASTLANE_PASSWORD="+appConfig["signing"]["ios"]["applePassword"]+ " && "+command;
         }
         execWithLog(command);
     }
@@ -372,13 +375,19 @@ async function distributeBeta(appConfig, platforms) {
         var projectPath = path.join(pathFolder, "platforms", platform)
 
         console.log(projectPath);
-
+        
         let action = null;
         if(BETA == "fabric") {
             action= "upload_to_crashlytics"
         } else if(BETA == "browserstack") {
             execWithLog("cd " + projectPath + " && fastlane add_plugin browserstack");
             action= "upload_to_browserstack"
+        } else if(BETA == "firebase") {
+            console.log("Should run using root");
+            execWithLog("cd " + projectPath + " && sudo fastlane add_plugin firebase_app_distribution");
+            execWithLog("cd " + projectPath + " && fastlane build_debug");
+            execWithLog("cd " + projectPath + " && sudo fastlane upload_to_firebase");
+            continue;
         }
         if(action != null) {
             execWithLog("cd " + projectPath + " && fastlane "+action);
@@ -649,6 +658,29 @@ async function createDeployConfig(appConfig, platforms, appRootPath) {
                 fastfileContent=fastfileContent.replace(/#function_upload_to_browserstack/g,browserstackFunction);
             }
 
+            const googleServicePath = path.join(pathFolder, "app", "google-services.json");
+            console.log(googleServicePath);
+            if(fs.existsSync(googleServicePath)) {
+                const googleServiceContent = require(googleServicePath);
+                const appId = googleServiceContent["client"][0]["client_info"]["mobilesdk_app_id"];
+
+                fastfileContent = fastfileContent.replace(/#upload_to_firebase/g, "upload_to_firebase");
+                var firebseFunction = "desc \"Upload to Firebase\"\n \
+                        lane :upload_to_firebase do\n \
+                        firebase_app_distribution(\n \
+                            app: \""+appId+"\",\n \
+                            app: \"app/build/outputs/apk/debug/app-debug.apk\",\n \
+                            testers: \""+appConfig.development.firebase.testers+"\",\n \
+                        )\n \
+                    end\n"
+                fastfileContent=fastfileContent.replace(/#function_upload_to_firebase/g,firebseFunction);
+            }
+
+            
+
+
+
+            // var googleServicePath = path.join(pathFolder, "platforms", "ios","GoogleService-Info.plist");
 
             // fastfileContent = fastfileContent.replace(/<testers>/g, appConfig.development.fabric.testers);
             // fastfileContent = fastfileContent.replace(/<fabric_api_key>/g, appConfig.development.fabric.fabric_api_key);
@@ -725,6 +757,24 @@ async function createDeployConfig(appConfig, platforms, appRootPath) {
                         )\n \
                     end\n";
                 fastfileContent = fastfileContent.replace(/#function_upload_to_browserstack/g,browserstackFunction);
+            }
+
+            const googleServicePath = path.join(pathFolder, "GoogleService-Info.plist");
+            console.log(googleServicePath);
+            if(fs.existsSync(googleServicePath)) {
+                var googleServiceContent = fs.readFileSync(googleServicePath, "utf-8");
+                var plistParsed = plist.parse(googleServiceContent);
+                const appId = plistParsed.GOOGLE_APP_ID;
+
+                fastfileContent = fastfileContent.replace(/#upload_to_firebase/g, "upload_to_firebase");
+                var firebseFunction = "desc \"Upload to Firebase\"\n \
+                        lane :upload_to_firebase do\n \
+                        firebase_app_distribution(\n \
+                            app: \""+appId+"\",\n \
+                            testers: \""+appConfig.development.firebase.testers+"\",\n \
+                        )\n \
+                    end\n"
+                fastfileContent=fastfileContent.replace(/#function_upload_to_firebase/g,firebseFunction);
             }
 
             fs.writeFileSync(path.join(fastlanePath, "Fastfile"), fastfileContent)
@@ -976,12 +1026,20 @@ function frameScreenshots(appConfig, platforms) {
         if(platform == "android") {
             screenshotsPathSource = path.join(screenshotsPath, "fastlane", "metadata", "raw")
             screenshotsPath = path.join(screenshotsPath, "fastlane", "metadata", "android")
+            fs_extra.emptyDirSync(screenshotsPath);
         } else {
             screenshotsPathSource = path.join(screenshotsPath, "fastlane", "screenshots", "raw")
             screenshotsPath = path.join(screenshotsPath, "fastlane", "screenshots")
         }
 
         var locals = getDirectoriesWithFiles(screenshotsPathSource);
+        for(local in locals) {
+            if(platform == "android") {
+                var localBase = path.basename(local);
+                var outputPath = path.join(screenshotsPath,localBase,"images");
+                fs_extra.emptyDirSync(outputPath);
+            }
+        }
         console.log(locals);
         for(index in appConfig.deploy.screenshots) {
             var screenshotConfig = appConfig.deploy.screenshots[index];
@@ -992,8 +1050,8 @@ function frameScreenshots(appConfig, platforms) {
                 if(platform == "android") {
                     var matchedAndroidFiles = [];
                     var matchedAndroidTabletFiles = [];
-
                     var localBase = path.basename(local)
+                    
                     var imagePath = path.join(screenshotsPathSource, localBase, "images", "phoneScreenshots");
                     var images = getFiles(imagePath);
                     for(index in images) {
@@ -1011,14 +1069,13 @@ function frameScreenshots(appConfig, platforms) {
                     }
                     console.log(matchedAndroidFiles);
                     console.log(matchedAndroidTabletFiles);
-
-                    var outputPath = path.join(screenshotsPath,localBase,"images","phoneScreenshots");
-                    console.log(outputPath);
                     
                     for(index in matchedAndroidFiles) {
+                        var outputPath = path.join(screenshotsPath,localBase,"images","phoneScreenshots");
                         frameScreenshot(matchedAndroidFiles[0], outputPath, "Android", urlHash, screenshotConfig, framesFolder, defaultLanguage, localBase, frameIndex)
                     }
                     for(index in matchedAndroidTabletFiles) {
+                        var outputPath = path.join(screenshotsPath,localBase,"images","sevenInchScreenshots");
                         frameScreenshot(matchedAndroidTabletFiles[0], outputPath, "AndroidTablet", urlHash, screenshotConfig, framesFolder, defaultLanguage, localBase, frameIndex)
                     }
                 } else {

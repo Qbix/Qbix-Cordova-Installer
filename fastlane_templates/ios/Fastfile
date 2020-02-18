@@ -17,13 +17,17 @@ default_platform(:ios)
 
 platform :ios do
 
-  desc "Submit to Crashlytics, Browserstack "
+  desc "Submit to Firebase, Browserstack"
   lane :beta do
     #upload_to_crashlytics
+    #upload_to_firebase
     #upload_to_browserstack
   end
 
   #function_upload_to_crashlytics
+
+  #to install fastlane plugin: fastlane add_plugin firebase_app_distribution
+  #function_upload_to_firebase
 
   #to install fastlane plugin: fastlane add_plugin browserstack
   #function_upload_to_browserstack

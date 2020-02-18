@@ -5,14 +5,23 @@ platform :android do
   lane :beta do
     gradle(task: "clean assembleDebug")
     #upload_to_crashlytics
-    # Install plugin fastlane add_plugin browserstack before
+    #upload_to_firebase
     #upload_to_browserstack
   end
 
   #function_upload_to_crashlytics
 
+  #to install fastlane plugin: fastlane add_plugin firebase_app_distribution
+  #function_upload_to_firebase
+
+  # Install plugin fastlane add_plugin browserstack before
   #function_upload_to_browserstack
   
+  desc "Build debug APK"
+  lane :build_debug do
+        gradle(task: "clean assembleDebug")
+  end
+
   desc "Build release APK"
   lane :build do
         gradle(task: "clean assembleRelease")
