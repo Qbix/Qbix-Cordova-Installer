@@ -669,7 +669,7 @@ async function createDeployConfig(appConfig, platforms, appRootPath) {
                         lane :upload_to_firebase do\n \
                         firebase_app_distribution(\n \
                             app: \""+appId+"\",\n \
-                            app: \"app/build/outputs/apk/debug/app-debug.apk\",\n \
+                            apk_path: \"app/build/outputs/apk/debug/app-debug.apk\",\n \
                             testers: \""+appConfig.development.firebase.testers+"\",\n \
                         )\n \
                     end\n"

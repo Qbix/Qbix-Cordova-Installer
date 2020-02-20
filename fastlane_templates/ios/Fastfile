@@ -40,7 +40,7 @@ platform :ios do
       team_id: "<team_id>",
       targets: ["<project_name>"]
     )
-    build_app(configuration: "Debug", scheme: "<project_name>",workspace: "<project_name>.xcworkspace",include_bitcode: true,xcargs: "-allowProvisioningUpdates")
+    build_app(configuration: "Debug", scheme: "<project_name>",workspace: "<project_name>.xcworkspace",include_bitcode: true,xcargs: "-allowProvisioningUpdates", export_method: "ad-hoc")
   end
   
   desc "Build release IPA"
