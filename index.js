@@ -413,6 +413,9 @@ function cordovaBuild(BUILD_AFTER,platforms) {
                 console.log("---final pod install---");
                 let pathFolder = path.join(platforms[platform]);
                 execWithLog("cd "+path.join(pathFolder, "platforms", platform)+" && pod install");
+            } else {
+                let pathFolder = path.join(platforms[platform]);
+                execWithLog("cd "+path.join(pathFolder, "platforms", platform)+" && chmod a+x gradlew");
             }
         }
     }
