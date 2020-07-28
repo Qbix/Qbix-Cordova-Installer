@@ -17,7 +17,7 @@ var deasync = require('deasync');
 var imageSize = require('image-size');
 var md5 = require('md5');
 var util = require('./util.js');
-const environment = require('./environment');
+const environment = require('./environmnet.json');
 const readlineSync = require('readline-sync');
 
 
@@ -221,6 +221,9 @@ async function main() {
         }
 
         addPlugins();
+    }
+
+    if(BUILD || UPDATE) {
 
         //update metadata
         console.log("---updateMetadata---");
@@ -235,8 +238,14 @@ async function main() {
         console.log("---createDeployConfig---");
         await createDeployConfig(appConfig, platforms, appRootPath);
 
+    }
+
+    if(BUILD) {
         console.log("---performManulaChanges---");
         performManulaChanges(appConfig, platforms)
+    }
+
+    if(BUILD || UPDATE) {
         console.log("---cordovaBuild---");
         cordovaBuild(BUILD_AFTER,platforms)
     }
@@ -1727,7 +1736,27 @@ function createBundle(appConfig, platforms) {
             //     shell.exec(appConfig.Bundle.Direct.afterRun);
             // }
 
-            console.log("Cordova folder:" +platforms[platform])
+            const excludeFolders = appConfig.Bundle.Direct.excludeFolders;
+            if(excludeFolders != null) {
+                for (platform in platforms) {
+                    var pathFolder = path.join(platforms[platform], "www");
+                    console.log(pathFolder);
+
+                    shell.exec("cd "+pathFolder)
+
+                    for(indeFolderToRemove in excludeFolders) {
+                        var pathToRemove = path.join(pathFolder, excludeFolders[indeFolderToRemove]);
+                        if(fs.existsSync(pathToRemove)) {
+                            if(util.File.isDir(pathToRemove)) {
+                                util.File.rmDir(pathToRemove)
+                            } else {
+                                util.File.rmFile(pathToRemove)
+                            }
+                        }
+                    }
+                }
+            }
+
             // shell.exec("cd "+platforms[platform]+" && cordova prepare");
         }
     }
@@ -2367,8 +2396,7 @@ function addUITestTarget(project, name, subfolder, files) {
 				    SWIFT_ACTIVE_COMPILATION_CONDITIONS: 'DEBUG',
 				    SWIFT_OPTIMIZATION_LEVEL: '"-Onone"',
 				    SWIFT_VERSION: '4.2',
-				    TARGETED_DEVICE_FAMILY: '"1,2"',
-				    TEST_TARGET_NAME : project.productName,
+				    TARGETED_DEVICE_FAMILY: '"1,2"'
                 },
                 name: 'Debug'
             },
@@ -2418,7 +2446,6 @@ function addUITestTarget(project, name, subfolder, files) {
                     SWIFT_OPTIMIZATION_LEVEL: '"-Owholemodule"',
                     SWIFT_VERSION: '4.2',
                     TARGETED_DEVICE_FAMILY: '"1,2"',
-                    TEST_TARGET_NAME: project.productName,
                     VALIDATE_PRODUCT: 'YES'
                 },
                 name: 'Release',
