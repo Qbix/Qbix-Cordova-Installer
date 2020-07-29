@@ -1739,6 +1739,21 @@ function createBundle(appConfig, platforms) {
             //     shell.exec(appConfig.Bundle.Direct.afterRun);
             // }
 
+            const postCommands = appConfig.Bundle.Direct.postCommands;
+            if(postCommands != null) {
+                for (platform in platforms) {
+                    var pathFolder = path.join(platforms[platform], "www");
+                    console.log(pathFolder);
+
+                    shell.exec("cd "+pathFolder)
+
+                    for(indexCommand in postCommands) {
+                        var command = postCommands[indexCommand];
+                        shell.exec("cd "+pathFolder+" && "+command);
+                    }
+                }
+            }
+
             const excludeFolders = appConfig.Bundle.Direct.excludeFolders;
             if(excludeFolders != null) {
                 for (platform in platforms) {
@@ -2220,7 +2235,7 @@ async function performManulaChanges(appConfig, platforms) {
 
             // proj.addTarget("QFastlaneUITests", "ui_testing","QFastlaneUITests");
             files = [qFastlaneUITestRef.uuid, snapshotHelperRef.uuid, darwinNotificationHelperRef.uuid];//
-            var uiTarget = addUITestTarget(proj,"QFastlaneUITests","QFastlaneUITests", files);
+            var uiTarget = addUITestTarget(proj,"QFastlaneUITests","QFastlaneUITests", files, projectName);
 
             // Add to workspace
             var workspacePath = path.join(pathFolder, "platforms", "ios", projectName+".xcworkspace", "xcshareddata","xcschemes",projectName+".xcscheme");
@@ -2329,7 +2344,7 @@ function insert(source, index, string) {
     return string + source;
 }
 
-function addUITestTarget(project, name, subfolder, files) {
+function addUITestTarget(project, name, subfolder, files, projectName) {
         // Setup uuid and name of new target
         var targetUuid = project.generateUuid(),
             targetType = "ui_testing",
@@ -2399,7 +2414,8 @@ function addUITestTarget(project, name, subfolder, files) {
 				    SWIFT_ACTIVE_COMPILATION_CONDITIONS: 'DEBUG',
 				    SWIFT_OPTIMIZATION_LEVEL: '"-Onone"',
 				    SWIFT_VERSION: '4.2',
-				    TARGETED_DEVICE_FAMILY: '"1,2"'
+				    TARGETED_DEVICE_FAMILY: '"1,2"',
+                    TEST_TARGET_NAME: projectName,
                 },
                 name: 'Debug'
             },
@@ -2449,6 +2465,7 @@ function addUITestTarget(project, name, subfolder, files) {
                     SWIFT_OPTIMIZATION_LEVEL: '"-Owholemodule"',
                     SWIFT_VERSION: '4.2',
                     TARGETED_DEVICE_FAMILY: '"1,2"',
+                    TEST_TARGET_NAME: projectName,
                     VALIDATE_PRODUCT: 'YES'
                 },
                 name: 'Release',
