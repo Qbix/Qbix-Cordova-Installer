@@ -32,6 +32,17 @@ platform :ios do
   #to install fastlane plugin: fastlane add_plugin browserstack
   #function_upload_to_browserstack
 
+  desc "Build debug development IPA"
+  lane :build_debug_development do
+    automatic_code_signing(
+      path: "<project_name>.xcodeproj",
+      use_automatic_signing: true,
+      team_id: "<team_id>",
+      targets: ["<project_name>"]
+    )
+    build_app(configuration: "Debug", scheme: "<project_name>",workspace: "<project_name>.xcworkspace",include_bitcode: true,xcargs: "-allowProvisioningUpdates", export_method: "development")
+  end
+
   desc "Build debug IPA"
   lane :build_debug do
     automatic_code_signing(

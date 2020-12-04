@@ -394,8 +394,13 @@ async function distributeBeta(appConfig, platforms) {
         } else if(BETA == "firebase") {
             console.log("Should run using root");
             execWithLog("cd " + projectPath + " && sudo fastlane add_plugin firebase_app_distribution");
-            execWithLog("cd " + projectPath + " && fastlane build_debug");
-            execWithLog("cd " + projectPath + " && sudo fastlane upload_to_firebase");
+            if(platform == "android") {
+                execWithLog("cd " + projectPath + " && fastlane build_debug");
+                execWithLog("cd " + projectPath + " && sudo fastlane upload_to_firebase");
+            } else {
+                execWithLog("cd " + projectPath + " && fastlane build_debug_development");
+                execWithLog("cd " + projectPath + " && fastlane upload_to_firebase");
+            }
             continue;
         }
         if(action != null) {
@@ -685,6 +690,15 @@ async function createDeployConfig(appConfig, platforms, appRootPath) {
                             testers: \""+appConfig.development.firebase.testers+"\",\n \
                         )\n \
                     end\n"
+                firebseFunction += "desc \"Upload to Firebase Alpha\"\n \
+                        lane :upload_to_firebase_alpha do\n \
+                        build\n \
+                        firebase_app_distribution(\n \
+                            app: \""+appId+"\",\n \
+                            apk_path: \"app/build/outputs/apk/release/app-release.apk\",\n \
+                            testers: \""+appConfig.development.firebase.testers+"\",\n \
+                        )\n \
+                    end\n"    
                 fastfileContent=fastfileContent.replace(/#function_upload_to_firebase/g,firebseFunction);
             }
 
@@ -762,7 +776,7 @@ async function createDeployConfig(appConfig, platforms, appRootPath) {
                 fastfileContent = fastfileContent.replace(/#upload_to_browserstack/g, "upload_to_browserstack");
                 var browserstackFunction = "desc \"Upload to Browserstack\"\n \
                         lane :upload_to_browserstack do\n \
-                        build_debug\n \
+                        automatic_code_signing\n \
                         upload_to_browserstack_app_live(\n \
                             browserstack_username: \""+appConfig.development.browserstack.username+"\",\n \
                             browserstack_access_key: \""+appConfig.development.browserstack.access_key+"\",\n \
@@ -1355,16 +1369,16 @@ async function copyIcons(appConfig, platforms, appRootPath) {
                 if(size == 1024) {
                     // var noAlphaBackgroundColor = "#00"+appConfig.background.substring(1, appConfig.background.length);
                     // console.log(noAlphaBackgroundColor);
-                    // var action = createImageWithFullsizeIcon(size, size, appConfig.background, "png", originalIconPath, outputFile);
-                    // await action;
-                    filePromises.push(action);
-                    filePromises.push(sharp(originalIconPath).resize(size, size).flatten().toFile(path.join(platformPath, iconSize)));
+                    var action = createImageWithFullsizeIcon(size, size, appConfig.background, "jpeg", originalIconPath, outputFile);
+                    await action;
+                    // filePromises.push(action);
+                    // filePromises.push(sharp(originalIconPath).resize(size, size).flatten().toFile(path.join(platformPath, iconSize)));
                 } else {
                     // This approach show error that AppIcon83.5x83.5@2x~ipad not added to Archive bundle and you can't upload to AppStore
-                    // var action = createImageWithFullsizeIcon(size, size, appConfig.background, "png", originalIconPath, outputFile);
-                    // await action;
-                    filePromises.push(action);
-                    filePromises.push(sharp(originalIconPath).resize(size, size).toFile(path.join(platformPath, iconSize)));
+                    var action = createImageWithFullsizeIcon(size, size, appConfig.background, "png", originalIconPath, outputFile);
+                    await action;
+                    // filePromises.push(action);
+                    // filePromises.push(sharp(originalIconPath).resize(size, size).toFile(path.join(platformPath, iconSize)));
                 }
             }
         }
@@ -1675,9 +1689,12 @@ function createBundle(appConfig, platforms) {
             console.log(pluginDir);
             shell.cd(pluginDir);
             stdout = shell.exec('hg paths', {silent: true}).stdout;
-            var pluginUrl = stdout.split("=")[1].trim()
-            shell.exec("hg pull -u " + createHgPullPath(pluginUrl, appConfig.Bundle.Q.login, appConfig.Bundle.Q.password));
-            shell.exec("hg update");
+            var parts = stdout.split("=");
+            if(parts.length == 2) {
+                var pluginUrl = stdout.split("=")[1].trim()
+                shell.exec("hg pull -u " + createHgPullPath(pluginUrl, appConfig.Bundle.Q.login, appConfig.Bundle.Q.password));
+                shell.exec("hg update");
+            }
         }
 
         // Update repo
@@ -1944,90 +1961,6 @@ function generatePluginInstallViaPlugman(pluginOption, appDirectory) {
     return commands
 }
 
-// async function testPerformManulaChanges(appConfig, platforms) {
-//     for(platform in platforms) {
-//         var pathFolder = path.join(platforms[platform])
-//         if(platform == "android") {
-//
-//         } else {
-//             var projectName = appConfig.name;
-//             var projectPath = path.join(pathFolder, "platforms", "ios", projectName+".xcodeproj","project.pbxproj");
-//             var proj = new xcode.project(projectPath);
-//             proj = proj.parseSync();
-//
-//             // let value =  proj.getBuildProperty("GCC_PREPROCESSOR_DEFINITIONS", "Debug");
-//             addDebugBuildProperty(proj, projectName);
-//             fs.writeFileSync(projectPath, proj.writeSync());
-//
-//             // var configurations = nonComments(proj.pbxXCBuildConfigurationSection()),
-//             //     key, configuration;
-//             //
-//             // for (key in configurations){
-//             //     configuration = configurations[key];
-//             //     if (!build_name || configuration.name === build_name){
-//             //         configuration.buildSettings[prop] = value;
-//             //     }
-//             // }
-//
-//             // var udid = proj.getFirstTarget().uuid
-//             // var pbxBuildConfigurationSection = proj.pbxXCBuildConfigurationSection()
-//             // for (key in pbxBuildConfigurationSection){
-//             //     if(pbxBuildConfigurationSection[key] != undefined && pbxBuildConfigurationSection[key].buildSettings != undefined && pbxBuildConfigurationSection[key].buildSettings['SWIFT_VERSION'] != undefined) {
-//             //         pbxBuildConfigurationSection[key].buildSettings['SWIFT_VERSION'] = "4.0";
-//             //     }
-//             // }
-//             // fs.writeFileSync(projectPath, proj.writeSync());
-//         }
-//     }
-// }
-
-
-
-// async function testPerformManulaChanges(appConfig, platforms) {
-//     for(platform in platforms) {
-//         var pathFolder = path.join(platforms[platform])
-//         if(platform == "android") {
-
-//         } else {
-//             var projectName = appConfig.name;
-//             var googleServicePath = path.join(pathFolder, "platforms", "ios","GoogleService-Info.plist");
-//             var projectPath = path.join(pathFolder, "platforms", "ios", projectName+".xcodeproj","project.pbxproj");
-//             var proj = new xcode.project(projectPath);
-//             proj = proj.parseSync();
-//             var udid = proj.getFirstTarget().uuid
-//             var pbxBuildConfigurationSection = proj.pbxXCBuildConfigurationSection()
-//             console.log(projectName);
-//             for (key in pbxBuildConfigurationSection){
-//                 var newKey = key;
-//                 if(pbxBuildConfigurationSection[key].name == "Debug") {
-//                     var debugBuildConfiguration = pbxBuildConfigurationSection[key].buildSettings['GCC_PREPROCESSOR_DEFINITIONS'];
-//                     if(debugBuildConfiguration && debugBuildConfiguration.indexOf("\"DEBUG=1\"") < 0) {
-//                         pbxBuildConfigurationSection[key].buildSettings['GCC_PREPROCESSOR_DEFINITIONS'].push("\"DEBUG=1\"");
-//                     } else {
-//                         pbxBuildConfigurationSection[key].buildSettings['GCC_PREPROCESSOR_DEFINITIONS'] = [];
-//                         pbxBuildConfigurationSection[key].buildSettings['GCC_PREPROCESSOR_DEFINITIONS'].push("\"$(inherited)\"");
-//                         pbxBuildConfigurationSection[key].buildSettings['GCC_PREPROCESSOR_DEFINITIONS'].push("\"DEBUG=1\"");
-//                     }
-
-//                     debugBuildConfiguration = pbxBuildConfigurationSection[key].buildSettings['OTHER_SWIFT_FLAGS'];
-//                     if(debugBuildConfiguration && debugBuildConfiguration.indexOf("-D DEBUG") < 0) {
-//                         // Remove last \" character from value
-//                         var otherSwiftFlag = pbxBuildConfigurationSection[key].buildSettings['OTHER_SWIFT_FLAGS'].substring(0, pbxBuildConfigurationSection[key].buildSettings['OTHER_SWIFT_FLAGS'].length-1);
-//                         pbxBuildConfigurationSection[key].buildSettings['OTHER_SWIFT_FLAGS'] = otherSwiftFlag+" -D DEBUG\"";
-//                         // console.log(pbxBuildConfigurationSection[key]);
-//                     } else {
-//                         pbxBuildConfigurationSection[key].buildSettings['OTHER_SWIFT_FLAGS'] = "\"$(inherited) -D DEBUG\"";
-//                     }
-//                     console.log(pbxBuildConfigurationSection[key]);
-//                 }
-//             }
-
-//             // fs.writeFileSync(projectPath, proj.writeSync());
-
-//         }
-// }
-// }
-
 async function performManulaChanges(appConfig, platforms) {
     for(platform in platforms) {
         var pathFolder = path.join(platforms[platform])
@@ -2035,7 +1968,7 @@ async function performManulaChanges(appConfig, platforms) {
 
         } else {
 
-            // Add legacy build mode
+            // // Add legacy build mode
             var legacyWorkspaceSettingsPath = path.join(pathFolder, "platforms", "ios", appConfig.name+".xcworkspace","xcshareddata","WorkspaceSettings.xcsettings");
             fs.writeFileSync(legacyWorkspaceSettingsPath, '<?xml version="1.0" encoding="UTF-8"?>\n'+
             '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n'+
@@ -2126,18 +2059,29 @@ async function performManulaChanges(appConfig, platforms) {
             }
             for (key in pbxBuildConfigurationSection){
                 var newKey = key;
+
                 if(pbxBuildConfigurationSection[key].name == "Debug") {
                     var debugBuildConfiguration = pbxBuildConfigurationSection[key].buildSettings['GCC_PREPROCESSOR_DEFINITIONS'];
+                    // if(debugBuildConfiguration ==null) {
+                    //     pbxBuildConfigurationSection[key].buildSettings['GCC_PREPROCESSOR_DEFINITIONS'] = ["\"$(inherited)\""];
+                    //     debugBuildConfiguration = pbxBuildConfigurationSection[key].buildSettings['GCC_PREPROCESSOR_DEFINITIONS'] 
+                    // }
                     if(debugBuildConfiguration && debugBuildConfiguration.indexOf("\"DEBUG=1\"") < 0) {
                         pbxBuildConfigurationSection[key].buildSettings['GCC_PREPROCESSOR_DEFINITIONS'].push("\"DEBUG=1\"");
                     }
 
                     debugBuildConfiguration = pbxBuildConfigurationSection[key].buildSettings['OTHER_SWIFT_FLAGS'];
+                    // if(debugBuildConfiguration ==null) {
+                    //     pbxBuildConfigurationSection[key].buildSettings['OTHER_SWIFT_FLAGS'] = "$(inherited) ";
+                    //     debugBuildConfiguration = pbxBuildConfigurationSection[key].buildSettings['OTHER_SWIFT_FLAGS'] 
+                    // }
                     if(debugBuildConfiguration && debugBuildConfiguration.indexOf("-D DEBUG") < 0) {
                         // Remove last \" character from value
                         var otherSwiftFlag = pbxBuildConfigurationSection[key].buildSettings['OTHER_SWIFT_FLAGS'].substring(0, pbxBuildConfigurationSection[key].buildSettings['OTHER_SWIFT_FLAGS'].length-1);
                         pbxBuildConfigurationSection[key].buildSettings['OTHER_SWIFT_FLAGS'] = otherSwiftFlag+" -D DEBUG\"";
                     }
+
+                    console.log(pbxBuildConfigurationSection[key]);
                 }
             }
             fs.writeFileSync(projectPath, proj.writeSync());
