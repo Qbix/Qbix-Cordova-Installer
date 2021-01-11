@@ -2039,7 +2039,7 @@ async function performManulaChanges(appConfig, platforms) {
             var pbxBuildConfigurationSection = proj.pbxXCBuildConfigurationSection()
             for (key in pbxBuildConfigurationSection){
                 if(pbxBuildConfigurationSection[key] != undefined && pbxBuildConfigurationSection[key].buildSettings != undefined && pbxBuildConfigurationSection[key].buildSettings['SWIFT_VERSION'] != undefined) {
-                    pbxBuildConfigurationSection[key].buildSettings['SWIFT_VERSION'] = "4.0";
+                    pbxBuildConfigurationSection[key].buildSettings['SWIFT_VERSION'] = "4.2";
                 }
             }
             fs.writeFileSync(projectPath, proj.writeSync());
