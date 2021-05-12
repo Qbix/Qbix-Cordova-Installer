@@ -1,5 +1,5 @@
 {
-    "php":"/Applications/MAMP/bin/php/php7.3.1/bin/php",
-    "node":"/usr/local/bin/node",
-    "screengenerator":"<path to screenshot generator>/index.js"
+    "php":"<full_php_path>",
+    "node":"<full_node_path>",
+    "screengenerator":"<full_screengenerator_path>/index.js"
 }
