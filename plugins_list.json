@@ -1,0 +1,300 @@
+{
+  "cordova-plugin-q": {
+    "git": "https://github.com/Qbix/cordova-plugin-q.git",
+    "platforms": [
+      "android",
+      "ios"
+    ],
+    "variables": {
+      "URL_SCHEME":"<schema>"
+    }
+  },
+  "cordova-plugin-background-mode": {
+    "git":"https://github.com/katzer/cordova-plugin-background-mode.git",
+    "platforms": [
+      "ios"
+    ]
+  },
+  "cordova-plugin-q-users": {
+    "git": "https://github.com/Qbix/cordova-plugin-q-users.git",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  "cordova-plugin-splashscreen": {
+    "git": "https://github.com/apache/cordova-plugin-splashscreen.git",
+    "platforms": [
+      "android",
+      "ios" 
+    ]
+  },
+  "cordova-plugin-appavailability": {
+    "git": "https://github.com/ohh2ahh/AppAvailability.git",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  "cordova-plugin-calendar": {
+    "git": "https://github.com/EddyVerbruggen/Calendar-PhoneGap-Plugin.git",
+    "platforms": [
+      "android",
+      "ios"
+    ],
+    "variables": {
+      "CALENDAR_USAGE_DESCRIPTION":"\"So that events you join can appear in your calendar\""
+    }
+  },
+  "cordova-plugin-geolocation": {
+    "git":"https://github.com/apache/cordova-plugin-geolocation.git",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  "cordova-plugin-facebook4": {
+    "pluginId": "https://github.com/jeduan/cordova-plugin-facebook4.git#v6.4.0",
+    "platforms": [
+      "android",
+      "ios"
+    ],
+    "variables": {
+      "APP_ID":"<FB_ID>",
+      "APP_NAME":"\"<FB_NAME>\""
+    }
+  },
+  "cordova-plugin-qrscanner": {
+    "git": "https://github.com/Qbix/cordova-plugin-qrscanner.git#fixed_dist_missing",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  "cordova-plugin-speechrecognition": {
+    "git": "https://github.com/pbakondy/cordova-plugin-speechrecognition.git",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  "cordova-plugin-fcm": {
+    "git":"https://github.com/Qbix/cordova-plugin-fcm.git#remove-deprecated-FirebaseInstanceIdService",
+    "platforms": [
+      "android"
+    ],
+    "patch": {
+      "android": [
+        {
+          "path": [
+            "plugins/cordova-plugin-fcm/plugin.xml",
+            "node_modules/cordova-plugin-fcm/plugin.xml",
+            "platforms/android/project.properties",
+            "platforms/android/app/build.gradle"
+          ],
+          "find": "com.google.firebase:firebase-core:+",
+          "replace": "com.google.firebase:firebase-core:16.0.9"
+        }, {
+          "path": [
+            "plugins/cordova-plugin-fcm/plugin.xml",
+            "node_modules/cordova-plugin-fcm/plugin.xml",
+            "platforms/android/project.properties",
+            "platforms/android/app/build.gradle"
+          ],
+          "find": "com.google.firebase:firebase-messaging:+",
+          "replace": "com.google.firebase:firebase-messaging:18.0.0"
+        },{
+          "path": [
+            "node_modules/cordova-plugin-fcm/src/android/FCMPlugin.gradle",
+            "plugins/cordova-plugin-fcm/src/android/FCMPlugin.gradle",
+            "platforms/android/cordova-plugin-fcm/{last_word_packageid}-FCMPlugin.gradle"
+          ],
+          "find": "com.android.tools.build:gradle:+",
+          "replace": "com.android.tools.build:gradle:3.0.1" 
+        },{
+          "path": [
+            "platforms/android/cordova-plugin-fcm/{last_word_packageid}-FCMPlugin.gradle" 
+          ],
+          "find": "mavenLocal()",
+          "replace": "mavenLocal()\ngoogle()" 
+        }
+      ]
+    }
+  },
+  "phonegap-plugin-push": {
+    "git":"https://github.com/phonegap/phonegap-plugin-push.git#v1.10.5",
+    "platforms": [
+      "ios"
+    ]
+  },
+  "com.verso.cordova.clipboard": {
+    "git":"https://github.com/Qbix/CordovaClipboard.git",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  "cordova-plugin-inappbrowser": {
+    "git":"https://github.com/apache/cordova-plugin-inappbrowser.git",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  "cordova-plugin-applepay": {
+    "git":"https://github.com/samkelleher/cordova-plugin-applepay.git",
+    "platforms": [
+      "ios"
+    ]
+  },
+  "cordova-plugin-armsoft-mfilechooser": {
+    "git":"https://github.com/roberthovhannisyan/MFileChooser.git",
+    "platforms": [
+      "android"
+    ],
+    "patch": {
+      "android": [
+        {
+          "path": [
+            "platforms/android/app/src/main/java/com/orleonsoft/android/simplefilechooser/ui/FileChooserActivity.java"
+          ],
+          "find": "import android.support.v4.app.ActionBarDrawerToggle;",
+          "replace": "import androidx.appcompat.app.ActionBarDrawerToggle;"
+        }, {
+          "path": [
+            "platforms/android/app/src/main/java/com/orleonsoft/android/simplefilechooser/ui/FileChooserActivity.java"
+          ],
+          "find": "import android.support.v4.view.GravityCompat;",
+          "replace": "import androidx.core.view.GravityCompat;"
+        }, {
+          "path": [
+            "platforms/android/app/src/main/java/com/orleonsoft/android/simplefilechooser/ui/FileChooserActivity.java"
+          ],
+          "find": "import android.support.v4.widget.DrawerLayout;",
+          "replace": "import androidx.drawerlayout.widget.DrawerLayout;\nimport androidx.appcompat.widget.Toolbar;"
+        },
+        {
+          "path": [
+            "platforms/android/app/src/main/java/com/orleonsoft/android/simplefilechooser/ui/FileChooserActivity.java"
+          ],
+          "find": "ic_navigation_drawer,",
+          "replace": "new Toolbar(this)"
+        }
+      ]
+    }
+
+
+  },
+  "cordova-plugin-email-composer": {
+    "git":"https://github.com/Qbix/cordova-plugin-email-composer.git",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  "cordova-universal-links-plugin": {
+    "git":"https://github.com/nordnet/cordova-universal-links-plugin.git",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  "mobi.moica.whatsapp": {
+    "git":"https://github.com/ranjitpandit/whatsapp-phonegap-plugin.git",
+    "platforms": [
+      "android"
+    ]
+  },
+  "cordova-plugin-app-even": {
+    "git":"https://github.com/katzer/cordova-plugin-app-event.git",
+    "platforms": [
+      "ios"
+    ]
+  },
+  "cordova-plugin-chrome-apps-socket": {
+    "git":"https://github.com/Qbix/cordova-plugin-chrome-apps-socket.git#fix-bug-on-newest-Cordova-version",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  "cordova-plugin-tts": {
+    "git":"https://github.com/Qbix/cordova-plugin-tts.git#fix-repeated-init-local-variables",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  "cordova-plugin-audiotoggle": {
+    "git":"https://github.com/danielflippance/audiotoggle.git",
+    "platforms": [
+      "android",
+      "ios" 
+    ]
+  },
+ "cordova-call": {
+    "git":"https://github.com/WebsiteBeaver/CordovaCall.git",
+    "platforms": [
+      "android",
+      "ios" 
+    ]
+  },
+  "cordova-plugin-phone-call": {
+    "git":"https://github.com/Qbix/cordova-plugin-phone-call.git#fix_compatible_issue",
+    "platforms": [
+      "android",
+      "ios" 
+    ]
+  },
+  "org.flybuy.cordova.background-location-services": {
+    "git": "https://github.com/pmwisdom/cordova-background-geolocation-services.git",
+    "platforms": [
+      "android"
+    ],
+    "patch": {
+      "android": [
+        {
+          "path": [
+            "plugins/org.flybuy.cordova.background-location-services/plugin.xml",
+            "node_modules/cordova-background-location-services/plugin.xml",
+            "platforms/android/project.properties",
+            "platforms/android/build.gradle"
+          ],
+          "find": "com.google.android.gms:play-services-location:+",
+          "replace": "com.google.android.gms:play-services-location:16.0.0"
+        }, {
+          "path": [
+            "platforms/android/cordova-plugin-fcm/{last_word_packageid}-FCMPlugin.gradle"
+          ],
+          "find": "com.google.gms:google-services:3.0.0",
+          "replace": "com.google.gms:google-services:4.2.0"
+        }, {
+          "path": [
+            "platforms/android/cordova-plugin-fcm/{last_word_packageid}-FCMPlugin.gradle"
+          ],
+          "find": "jcenter()",
+          "replace": "jcenter()\ngoogle()"
+        }
+      ]
+    }
+  },
+  "phonegap-plugin-media-stream": {
+    "git":"https://github.com/phonegap/phonegap-plugin-media-stream.git",
+    "platforms": [
+      "android",
+      "ios" 
+    ]
+  },
+  "cordova-plugin-authenticationsession": {
+    "git":"https://github.com/Qbix/cordova-plugin-authenticationsession.git",
+    "platforms": [
+      "ios"
+    ]
+  },
+  "cordova-plugin-android-permissions": {
+    "git":"https://github.com/NeoLSN/cordova-plugin-android-permissions.git",
+    "platforms": [
+      "android"
+    ]
+  }
+}
