@@ -178,7 +178,7 @@
             "platforms/android/app/src/main/java/com/orleonsoft/android/simplefilechooser/ui/FileChooserActivity.java"
           ],
           "find": "ic_navigation_drawer,",
-          "replace": "new Toolbar(this)"
+          "replace": "new Toolbar(this),"
         }
       ]
     }
