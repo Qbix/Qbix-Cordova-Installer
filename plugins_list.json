@@ -182,8 +182,6 @@
         }
       ]
     }
-
-
   },
   "cordova-plugin-email-composer": {
     "git":"https://github.com/Qbix/cordova-plugin-email-composer.git",
@@ -293,6 +291,12 @@
   },
   "cordova-plugin-android-permissions": {
     "git":"https://github.com/NeoLSN/cordova-plugin-android-permissions.git",
+    "platforms": [
+      "android"
+    ]
+  },
+  "cordova-plugin-androidx": {
+    "git":"https://github.com/dpa99c/cordova-plugin-androidx.git",
     "platforms": [
       "android"
     ]
