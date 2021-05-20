@@ -6,8 +6,9 @@ Setup Xcode machin
 4. Install Jenkins ```brew install jenkins-lts```
 5. Install ```Environment Injector``` plugin to Jenkins
 6. Set global ENV to Manage Jenkins -> Configure System -> Global properties option -> check Environment variables
+ANDROID_SDK_PATH, SCREENSHOTGENERATOR_PATH, PHP_PATH, NPM_PATH, NODE_PATH, GOOGLE_PLAY_CREDS, BROWSERSTACK_USERNAME, BROWSERSTACK_ACCESS_KEY
 7. Install ```Pipeline Utility Steps```
-8. Install ```$ANDROID_HOME/tools``` to PATH using ~/.bash_profile
+8. Install ```$ANDROID_HOME/emulator``` to PATH using ~/.bash_profile
 
 
 1. Setup Environment

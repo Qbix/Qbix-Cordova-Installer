@@ -50,6 +50,7 @@ var platforms = {};
 var phpInterpreter = undefined;
 var nodeInterpreter = undefined;
 var screengenerator = undefined;
+var androidSDKPath = undefined;
 var frame_output = undefined;
 
 main().then(result => {
@@ -78,6 +79,7 @@ async function main() {
     phpInterpreter = environment["php"];
     nodeInterpreter = environment["node"];
     screengenerator = environment["screengenerator"];
+    androidSDKPath = environment["android_sdk_path"];
 
 
     CREATE = ops.create;

@@ -1,5 +1,6 @@
 {
     "php":"<full_php_path>",
     "node":"<full_node_path>",
-    "screengenerator":"<full_screengenerator_path>/index.js"
+    "screengenerator":"<full_screengenerator_path>/index.js",
+    "android_sdk_path":"<android_sdk_path>"
 }
