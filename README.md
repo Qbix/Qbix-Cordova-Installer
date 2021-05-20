@@ -1,3 +1,14 @@
+Setup Xcode machin
+
+1. Install Xcode from AppStore or using direct link https://developer.apple.com/download/more/
+2. Install Android Studio from official site
+3. Install brew ```/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"```
+4. Install Jenkins ```brew install jenkins-lts```
+5. Install ```Environment Injector``` plugin to Jenkins
+6. Set global ENV to Manage Jenkins -> Configure System -> Global properties option -> check Environment variables
+
+
+
 1. Setup Environment
 
 ```cp environment.json.template environment.json```

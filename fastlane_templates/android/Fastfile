@@ -54,8 +54,8 @@ platform :android do
       locales: [<languages>],
       output_directory: "fastlane/metadata/raw",
       skip_open_summary: true,
-      test_instrumentation_runner: "android.support.test.runner.AndroidJUnitRunner",
-      # clear_previous_screenshots: true,
+      test_instrumentation_runner: "androidx.test.runner.AndroidJUnitRunner",
+      clear_previous_screenshots: true,
       launch_arguments:[<screenshots_array>],
       app_apk_path: "app/build/outputs/apk/debug/app-debug.apk",
       tests_apk_path: "app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk"
