@@ -395,10 +395,10 @@ async function distributeBeta(appConfig, platforms) {
             action= "upload_to_browserstack"
         } else if(BETA == "firebase") {
             console.log("Should run using root");
-            execWithLog("cd " + projectPath + " && sudo fastlane add_plugin firebase_app_distribution");
+            execWithLog("cd " + projectPath + " && fastlane add_plugin firebase_app_distribution");
             if(platform == "android") {
                 execWithLog("cd " + projectPath + " && fastlane build_debug");
-                execWithLog("cd " + projectPath + " && sudo fastlane upload_to_firebase");
+                execWithLog("cd " + projectPath + " && fastlane upload_to_firebase");
             } else {
                 execWithLog("cd " + projectPath + " && fastlane build_debug_development");
                 execWithLog("cd " + projectPath + " && fastlane upload_to_firebase");
