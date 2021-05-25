@@ -386,16 +386,17 @@ async function distributeBeta(appConfig, platforms) {
         var projectPath = path.join(pathFolder, "platforms", platform)
 
         console.log(projectPath);
+        execWithLog("cd " + pathFolder + " &&  cordova build "+platform);
         
         let action = null;
         if(BETA == "fabric") {
             action= "upload_to_crashlytics"
         } else if(BETA == "browserstack") {
-            execWithLog("cd " + projectPath + " && fastlane add_plugin browserstack");
+            // execWithLog("cd " + projectPath + " && fastlane add_plugin browserstack");
             action= "upload_to_browserstack"
         } else if(BETA == "firebase") {
             console.log("Should run using root");
-            execWithLog("cd " + projectPath + " && fastlane add_plugin firebase_app_distribution");
+            // execWithLog("cd " + projectPath + " && fastlane add_plugin firebase_app_distribution");
             if(platform == "android") {
                 execWithLog("cd " + projectPath + " && fastlane build_debug");
                 execWithLog("cd " + projectPath + " && fastlane upload_to_firebase");
