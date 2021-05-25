@@ -1,4 +1,60 @@
+
 {
+  "resources": [
+    {
+      "path":"google-services.json",
+      "to":"platforms/android/app/",
+      "platforms": [
+        "android"
+      ]
+    },
+    {
+      "path":"GoogleService-Info.plist",
+      "to":"platforms/ios/",
+      "platforms": [
+        "ios"
+      ]
+    },
+    {
+      "path":"qbix_google_play_console.json",
+      "to":"platforms/android/",
+      "platforms": [
+        "android"
+      ]
+    }
+  ],
+  "iOSParametersInfoPlist":{
+    "NSContactsUsageDescription":"To find your friends",
+    "NSPhotoLibraryUsageDescription":"To select a profile photo to represent you on the app.",
+    "NSCameraUsageDescription": "To take a profile photo to represent you on the app.",
+    "NSLocationWhenInUseUsageDescription":"To take a geolocation",
+    "NSLocationAlwaysUsageDescription":"To take a geolocation",
+    "NSMicrophoneUsageDescription":"To make video conferencing",
+    "NSSpeechRecognitionUsageDescription":"To control the app by voice"
+  },
+  "iOSPreferences": {
+    "deployment-target":"11.0",
+    "KeyboardDisplayRequiresUserAction":"false",
+    "HideKeyboardFormAccessoryBar":"false",
+    "DisallowOverscroll":"true",
+    "StatusBarOverlaysWebView":"true",
+    "AllowInlineMediaPlayback":"true",
+    "AutoHideSplashScreen":"false",
+    "SplashScreenDelay":"30000",
+    "WKWebViewOnly":"true"
+  },
+  "AndroidPreferences": {
+    "KeyboardDisplayRequiresUserAction":"false",
+    "HideKeyboardFormAccessoryBar":"false",
+    "DisallowOverscroll":"true",
+    "loadUrlTimeoutValue":"60000",
+    "AutoHideSplashScreen":"false",
+    "SplashScreenDelay":"30000",
+    "android-targetSdkVersion":"28",
+    "StatusBarOverlaysWebView":"false",
+    "AndroidXEnabled":"true"
+  },
+  "plugins":{
   "cordova-plugin-q": {
     "git": "https://github.com/Qbix/cordova-plugin-q.git",
     "platforms": [
@@ -301,4 +357,5 @@
       "android"
     ]
   }
+}
 }
