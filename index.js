@@ -35,6 +35,7 @@ var ops = stdio.getopt({
     'deploy':{description: 'Deploy release to Google Play/App Store'},
     'android':{description: 'Do action for android. If skip, will take platforms from config file'},
     'ios':{description: 'Do action for iOS. If skip, will take platforms from config file'},
+    'download_bundle':{description: 'just download bundle'},
 
     'full_create': {description: 'Create app, Install plugins, Update bundle'},
     'update_plugin': {description: 'Install/Update Plugins, Update bundle'},
@@ -91,6 +92,7 @@ async function main() {
     DEPLOY = ops.deploy;
     ANDROID = ops.android;
     IOS = ops.ios;
+    DOWNLOAD_BUNDLE = ops.download_bundle
 
 
 
@@ -170,6 +172,10 @@ async function main() {
 
     if(UPDATE) {
         shell.exec("git pull origin master");
+    }
+
+    if(DOWNLOAD_BUNDLE) {
+        createBundle(appConfig, platforms);
     }
 
     if(BUILD) {
@@ -508,6 +514,22 @@ function addPlugins() {
                         fs.writeFileSync(pathToFileChange, content)
                     }
 
+                }
+            }
+        }
+    }
+    console.log("Apply patches")
+    for(platform in platforms) {
+        const pathToApp = platforms[platform];
+
+        if(appConfig.patches[platform] != undefined) {
+            for(file in appConfig.patches[platform]) {
+                var patchObject = appConfig.patches[platform][file];
+                for(filePath in patchObject.path) {
+                    var pathToFileChange = path.join(pathToApp,patchObject.path[filePath]);
+                    var content = fs.readFileSync(pathToFileChange, "utf-8");
+                    content = content.replace(patchObject.find,patchObject.replace);
+                    fs.writeFileSync(pathToFileChange, content)
                 }
             }
         }

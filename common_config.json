@@ -356,5 +356,17 @@
         "android"
       ]
     }
+  },
+  "patches": {
+    "android": [
+      {
+        "path": [
+          "platforms/android/app/src/main/java/org/apache/cordova/camera/FileProvider.java",
+          "platforms/android/app/src/main/java/org/apache/cordova/camera/CameraLauncher.java"
+        ],
+        "find": "android.support.v4.content.FileProvider",
+        "replace": "androidx.core.content.FileProvider"
+      }
+    ]
   }
 }

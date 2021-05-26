@@ -6,10 +6,30 @@ Setup Xcode machin
 4. Install Jenkins ```brew install jenkins-lts```
 5. Install ```Environment Injector``` plugin to Jenkins
 6. Set global ENV to Manage Jenkins -> Configure System -> Global properties option -> check Environment variables
-ANDROID_SDK_PATH, SCREENSHOTGENERATOR_PATH, PHP_PATH, NPM_PATH, NODE_PATH, GOOGLE_PLAY_CREDS, BROWSERSTACK_USERNAME, BROWSERSTACK_ACCESS_KEY
-7. Install ```Pipeline Utility Steps```
+ANDROID_SDK_PATH, SCREENSHOTGENERATOR_PATH, PHP_PATH, NPM_PATH, NODE_PATH, GOOGLE_PLAY_CREDS, BROWSERSTACK_USERNAME, BROWSERSTACK_ACCESS_KEY, APPLE_ID_USERNAME, APPLE_ID_PASSWORD, Q_REPO_LOGIN, Q_REPO_PASSWORD
+7. Install ```Pipeline Utility Steps```, ```Mercurial```
 8. Install ```$ANDROID_HOME/emulator``` to PATH using ~/.bash_profile
-
+9. Install node 14 version
+```
+brew install node@14
+brew unlink node
+brew link node@14
+node -v
+```
+10. Add username and password for Q repo to jenkins with id "946a36b2-8868-4eaa-ab82-f2a313cf694a"
+11. Install hg ```brew install hg```
+12. Install cordova ```npm install -g cordova```
+13. Install cocoapods ```sudo gem install cocoapods```
+14. Install fastlane ```brew install fastlane```
+15. Install jdk  ``` brew tap adoptopenjdk/openjdk && brew install --cask adoptopenjdk8```
+16. Install gradle ```brew install gradle```
+17. Install SDL 28 via Android Studio
+15. edit ~/.zshenv
+```
+export JAVA_HOME=/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home
+export ANDROID_SDK_ROOT=/Users/administrator/Library/Android/sdk
+```
+source ~/.zshenv
 
 1. Setup Environment
 
