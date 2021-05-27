@@ -17,7 +17,7 @@ var deasync = require('deasync');
 var imageSize = require('image-size');
 var md5 = require('md5');
 var util = require('./util.js');
-const environment = require('./environmnet.json');
+const environment = require('./environment.json');
 const readlineSync = require('readline-sync');
 
 
