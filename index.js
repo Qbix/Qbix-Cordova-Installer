@@ -1696,129 +1696,133 @@ function createHgPullPath(urlRepo, login, password) {
 }
 
 function createBundle(appConfig, platforms) {
-    if (appConfig.Bundle == undefined) return;
-    if (appConfig.Bundle.Q != undefined) {
-        if (appConfig.Bundle.Q.webProjectPath == undefined || appConfig.Bundle.Q.webProjectPath.length == 0) return;
+    try {
+        if (appConfig.Bundle == undefined) return;
+        if (appConfig.Bundle.Q != undefined) {
+            if (appConfig.Bundle.Q.webProjectPath == undefined || appConfig.Bundle.Q.webProjectPath.length == 0) return;
 
-        var appPath = path.join(appConfig.Bundle.Q.webProjectPath);
-        var qPath = path.join(appConfig.Bundle.Q.QProjectPath);
-        var installScript = path.join(appPath, "/scripts/Q/install.php");
-        var bundleScript = path.join(appPath, "/scripts/Q/bundle.php");
+            var appPath = path.join(appConfig.Bundle.Q.webProjectPath);
+            var qPath = path.join(appConfig.Bundle.Q.QProjectPath);
+            var installScript = path.join(appPath, "/scripts/Q/install.php");
+            var bundleScript = path.join(appPath, "/scripts/Q/bundle.php");
 
-        // Update Q repo
-        var pluginsPath = path.join(qPath, "plugins");
-        var plugins = getDirectories(pluginsPath);
+            // Update Q repo
+            var pluginsPath = path.join(qPath, "plugins");
+            var plugins = getDirectories(pluginsPath);
 
-        for (var dirIndex in plugins) {
-            var pluginDir = plugins[dirIndex]
-            console.log(pluginDir);
-            shell.cd(pluginDir);
-            stdout = shell.exec('hg paths', {silent: true}).stdout;
-            var parts = stdout.split("=");
-            if(parts.length == 2) {
-                var pluginUrl = stdout.split("=")[1].trim()
-                shell.exec("hg pull -u " + createHgPullPath(pluginUrl, appConfig.Bundle.Q.login, appConfig.Bundle.Q.password));
-                shell.exec("hg update");
-            }
-        }
-
-        // Update repo
-        shell.cd(appPath);
-        shell.exec("hg pull -u " + createHgPullPath(appConfig.Bundle.Q.url, appConfig.Bundle.Q.login, appConfig.Bundle.Q.password));
-        shell.exec("hg update");
-
-        var command = "php " + installScript + "  --all";
-        console.log(command);
-        execWithLog(command);
-        for (platform in platforms) {
-            var pathFolder = path.join(platforms[platform], "www/Bundle");
-            createFolderIfNotExist(pathFolder);
-            execWithLog("php " + bundleScript + " " + pathFolder);
-            if (platform === "android") {
-                var androidPathFolder = path.join(platforms[platform], "platforms/android/app/src/main/assets/", "www/Bundle");
-                createFolderIfNotExist(androidPathFolder);
-                var command = "php " + bundleScript + " " + androidPathFolder;
-                console.log(command);
-                execWithLog(command);
-            } else if (platform === "ios") {
-                var iosPathFolder = path.join(platforms[platform], "platforms/ios/", "www/Bundle");
-                createFolderIfNotExist(iosPathFolder);
-                var command = "php " + bundleScript + " " + iosPathFolder;
-                console.log(command);
-                execWithLog(command);
-            }
-        }
-    } else if(appConfig.Bundle.Direct != undefined) {
-        console.log("Direct bundle")
-        for (platform in platforms) {
-            var pathFolder = path.join(platforms[platform], "www");
-            console.log(pathFolder);
-
-            shell.exec("cd "+pathFolder)
-            shell.exec("pwd").output;
-            if(appConfig.Bundle.Direct.type =="git") {
-                var tempFolder = path.join(pathFolder, "tmp");
-                util.File.rmDir(tempFolder)
-                util.File.rmDir(pathFolder+"/*")
-                var command = "git clone " + ((appConfig.Bundle.Direct.branch !== undefined) ? " -b "+appConfig.Bundle.Direct.branch+" ":" -b master ")+ createGitPullPath(appConfig.Bundle.Direct.url, appConfig.Bundle.Direct.login, appConfig.Bundle.Direct.password, appConfig.Bundle.Direct.branch) + " "+tempFolder
-                console.log(command);
-                shell.exec(command)
-                util.File.rmDir(path.join(tempFolder, ".git"))
-                shell.exec("cp -r -v "+tempFolder+"/* "+pathFolder);
-                util.File.rmDir(tempFolder)
-            } else if(appConfig.Bundle.Direct.type =="hg") {
-                var tempFolder = path.join(pathFolder, "tmp");
-                util.File.rmDir(tempFolder)
-                var command = "hg clone "+createHgPullPath(appConfig.Bundle.Direct.url, appConfig.Bundle.Direct.login, appConfig.Bundle.Direct.password)+" "+((appConfig.Bundle.Direct.branch !== undefined) ? " -r "+appConfig.Bundle.Direct.branch+" ":" -r master ")+" "+tempFolder
-                console.log(command);
-                shell.exec(command)
-                util.File.rmDir(path.join(tempFolder, ".hg"))
-                shell.exec("cp -r -v "+tempFolder+"/* "+pathFolder);
-                util.File.rmDir(tempFolder)
-            }
-            // if(appConfig.Bundle.Direct.afterRun != undefined) {
-            //     shell.exec("cd "+tempFolder)
-            //     shell.exec(appConfig.Bundle.Direct.afterRun);
-            // }
-
-            const postCommands = appConfig.Bundle.Direct.postCommands;
-            if(postCommands != null) {
-                for (platform in platforms) {
-                    var pathFolder = path.join(platforms[platform], "www");
-                    console.log(pathFolder);
-
-                    shell.exec("cd "+pathFolder)
-
-                    for(indexCommand in postCommands) {
-                        var command = postCommands[indexCommand];
-                        shell.exec("cd "+pathFolder+" && "+command);
-                    }
+            for (var dirIndex in plugins) {
+                var pluginDir = plugins[dirIndex]
+                console.log(pluginDir);
+                shell.cd(pluginDir);
+                stdout = shell.exec('hg paths', {silent: true}).stdout;
+                var parts = stdout.split("=");
+                if(parts.length == 2) {
+                    var pluginUrl = stdout.split("=")[1].trim()
+                    shell.exec("hg pull -u " + createHgPullPath(pluginUrl, appConfig.Bundle.Q.login, appConfig.Bundle.Q.password));
+                    shell.exec("hg update");
                 }
             }
 
-            const excludeFolders = appConfig.Bundle.Direct.excludeFolders;
-            if(excludeFolders != null) {
-                for (platform in platforms) {
-                    var pathFolder = path.join(platforms[platform], "www");
-                    console.log(pathFolder);
+            // Update repo
+            shell.cd(appPath);
+            shell.exec("hg pull -u " + createHgPullPath(appConfig.Bundle.Q.url, appConfig.Bundle.Q.login, appConfig.Bundle.Q.password));
+            shell.exec("hg update");
 
-                    shell.exec("cd "+pathFolder)
+            var command = "php " + installScript + "  --all";
+            console.log(command);
+            execWithLog(command);
+            for (platform in platforms) {
+                var pathFolder = path.join(platforms[platform], "www/Bundle");
+                createFolderIfNotExist(pathFolder);
+                execWithLog("php " + bundleScript + " " + pathFolder);
+                if (platform === "android") {
+                    var androidPathFolder = path.join(platforms[platform], "platforms/android/app/src/main/assets/", "www/Bundle");
+                    createFolderIfNotExist(androidPathFolder);
+                    var command = "php " + bundleScript + " " + androidPathFolder;
+                    console.log(command);
+                    execWithLog(command);
+                } else if (platform === "ios") {
+                    var iosPathFolder = path.join(platforms[platform], "platforms/ios/", "www/Bundle");
+                    createFolderIfNotExist(iosPathFolder);
+                    var command = "php " + bundleScript + " " + iosPathFolder;
+                    console.log(command);
+                    execWithLog(command);
+                }
+            }
+        } else if(appConfig.Bundle.Direct != undefined) {
+            console.log("Direct bundle")
+            for (platform in platforms) {
+                var pathFolder = path.join(platforms[platform], "www");
+                console.log(pathFolder);
 
-                    for(indeFolderToRemove in excludeFolders) {
-                        var pathToRemove = path.join(pathFolder, excludeFolders[indeFolderToRemove]);
-                        if(fs.existsSync(pathToRemove)) {
-                            if(util.File.isDir(pathToRemove)) {
-                                util.File.rmDir(pathToRemove)
-                            } else {
-                                util.File.rmFile(pathToRemove)
+                shell.exec("cd "+pathFolder)
+                shell.exec("pwd").output;
+                if(appConfig.Bundle.Direct.type =="git") {
+                    var tempFolder = path.join(pathFolder, "tmp");
+                    util.File.rmDir(tempFolder)
+                    util.File.rmDir(pathFolder+"/*")
+                    var command = "git clone " + ((appConfig.Bundle.Direct.branch !== undefined) ? " -b "+appConfig.Bundle.Direct.branch+" ":" -b master ")+ createGitPullPath(appConfig.Bundle.Direct.url, appConfig.Bundle.Direct.login, appConfig.Bundle.Direct.password, appConfig.Bundle.Direct.branch) + " "+tempFolder
+                    console.log(command);
+                    shell.exec(command)
+                    util.File.rmDir(path.join(tempFolder, ".git"))
+                    shell.exec("cp -r -v "+tempFolder+"/* "+pathFolder);
+                    util.File.rmDir(tempFolder)
+                } else if(appConfig.Bundle.Direct.type =="hg") {
+                    var tempFolder = path.join(pathFolder, "tmp");
+                    util.File.rmDir(tempFolder)
+                    var command = "hg clone "+createHgPullPath(appConfig.Bundle.Direct.url, appConfig.Bundle.Direct.login, appConfig.Bundle.Direct.password)+" "+((appConfig.Bundle.Direct.branch !== undefined) ? " -r "+appConfig.Bundle.Direct.branch+" ":" -r master ")+" "+tempFolder
+                    console.log(command);
+                    shell.exec(command)
+                    util.File.rmDir(path.join(tempFolder, ".hg"))
+                    shell.exec("cp -r -v "+tempFolder+"/* "+pathFolder);
+                    util.File.rmDir(tempFolder)
+                }
+                // if(appConfig.Bundle.Direct.afterRun != undefined) {
+                //     shell.exec("cd "+tempFolder)
+                //     shell.exec(appConfig.Bundle.Direct.afterRun);
+                // }
+
+                const postCommands = appConfig.Bundle.Direct.postCommands;
+                if(postCommands != null) {
+                    for (platform in platforms) {
+                        var pathFolder = path.join(platforms[platform], "www");
+                        console.log(pathFolder);
+
+                        shell.exec("cd "+pathFolder)
+
+                        for(indexCommand in postCommands) {
+                            var command = postCommands[indexCommand];
+                            shell.exec("cd "+pathFolder+" && "+command);
+                        }
+                    }
+                }
+
+                const excludeFolders = appConfig.Bundle.Direct.excludeFolders;
+                if(excludeFolders != null) {
+                    for (platform in platforms) {
+                        var pathFolder = path.join(platforms[platform], "www");
+                        console.log(pathFolder);
+
+                        shell.exec("cd "+pathFolder)
+
+                        for(indeFolderToRemove in excludeFolders) {
+                            var pathToRemove = path.join(pathFolder, excludeFolders[indeFolderToRemove]);
+                            if(fs.existsSync(pathToRemove)) {
+                                if(util.File.isDir(pathToRemove)) {
+                                    util.File.rmDir(pathToRemove)
+                                } else {
+                                    util.File.rmFile(pathToRemove)
+                                }
                             }
                         }
                     }
                 }
-            }
 
-            // shell.exec("cd "+platforms[platform]+" && cordova prepare");
+                // shell.exec("cd "+platforms[platform]+" && cordova prepare");
+            }
         }
+    } catch(e) {
+        console.error("Exception : "+e)
     }
 }
 
