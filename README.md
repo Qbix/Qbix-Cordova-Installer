@@ -24,7 +24,14 @@ node -v
 15. Install jdk  ``` brew tap adoptopenjdk/openjdk && brew install --cask adoptopenjdk8```
 16. Install gradle ```brew install gradle```
 17. Install SDL 28 via Android Studio
-15. edit ~/.zshenv
+18. install ```fastlane add_plugin firebase_app_distribution``` from ~/
+sudo chmod -R 777 /Library/Ruby/Gems/2.6.0   
+19. sudo gem install screengrab
+20. sudo gem install fastlane-plugin-browserstack
+21. npm install -g firebase-tools
+22. firebase login
+23. sudo xcode-select -switch /Applications/Xcode.app/Contents/Developer
+24. edit ~/.zshenv
 ```
 export JAVA_HOME=/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home
 export ANDROID_SDK_ROOT=/Users/administrator/Library/Android/sdk

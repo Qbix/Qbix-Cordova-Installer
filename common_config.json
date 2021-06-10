@@ -70,6 +70,12 @@
         "ios"
       ]
     },
+    "cordova-plugin-iosrtc": {
+      "git":"https://github.com/Qbix/cordova-plugin-iosrtc#fixed-swift4-add-objc",
+      "platforms": [
+        "ios" 
+      ]
+    },
     "cordova-plugin-q-users": {
       "git": "https://github.com/Qbix/cordova-plugin-q-users.git",
       "platforms": [
