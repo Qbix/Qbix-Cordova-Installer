@@ -139,6 +139,13 @@
         "ios"
       ]
     },
+    "cordova-plugin-sharescreen": {
+      "git": "https://github.com/Qbix/cordova-plugin-sharescreen.git",
+      "platforms": [
+        "android",
+        "ios"
+      ]
+    },
     "cordova-plugin-fcm": {
       "git":"https://github.com/Qbix/cordova-plugin-fcm.git#remove-deprecated-FirebaseInstanceIdService",
       "platforms": [

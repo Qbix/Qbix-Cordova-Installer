@@ -18,7 +18,7 @@ node -v
 ```
 10. Add username and password for Q repo to jenkins with id "946a36b2-8868-4eaa-ab82-f2a313cf694a"
 11. Install hg ```brew install hg```
-12. Install cordova ```npm install -g cordova```
+12. Install cordova ```npm install -g cordova@9.0.0```
 13. Install cocoapods ```sudo gem install cocoapods```
 14. Install fastlane ```brew install fastlane```
 15. Install jdk  ``` brew tap adoptopenjdk/openjdk && brew install --cask adoptopenjdk8```
