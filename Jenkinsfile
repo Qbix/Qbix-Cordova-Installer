@@ -14,11 +14,9 @@ pipeline {
        android_key_name = ''
        android_sign_key = ''
        androidSigning = ''
-    
        applicationKey = ''
        androidFirebaseConfig = ''
        iosFirebaseConfig = ''
-
        repoCredentialsId = ''
        
        // NOT SENSITIVE DATA
