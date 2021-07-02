@@ -29,6 +29,7 @@ var ops = stdio.getopt({
     'create':{description: "Create new project. --create <PROJECT_NAME> <URL_TO_GIT>(Optional)"},
     'update':{description: 'Pull latest changes for project'},
     'build':{description: 'Build app. Remove previous'},
+    'manual':{description: 'Apply test manual changes'},
     'screenshots':{description: 'Make screenshots'},
     'framing':{description: 'Add frames to existing screenshots'},
     'beta':{args: 1, description: 'Distribute to beta. Available "fabric", "browserstack"'},
@@ -86,6 +87,7 @@ async function main() {
     CREATE = ops.create;
     UPDATE = ops.update;
     BUILD = ops.build;
+    MANUAL = ops.manual;
     SCREENSHOTS = ops.screenshots;
     FRAMING = ops.framing;
     BETA = ops.beta;
@@ -258,9 +260,9 @@ async function main() {
         cordovaBuild(BUILD_AFTER,platforms)
     }
 
-    // if(MANUAL) {
-    //     await testPerformManulaChanges(appConfig, platforms)
-    // }
+    if(MANUAL) {
+        await testPerformManulaChanges(appConfig, platforms)
+    }
 
     if(SCREENSHOTS) {
         console.log("---captureScreenshots---");
@@ -285,85 +287,85 @@ async function main() {
 
     return;
 
-    if (FULL_CREATE) {
-    // Add projects
-        console.log(appNameForOS);
-        addProjects(appNameForOS)
+//     if (FULL_CREATE) {
+//     // Add projects
+//         console.log(appNameForOS);
+//         addProjects(appNameForOS)
 
-    // setupConfig
-        setupConfig(appConfig);
+//     // setupConfig
+//         setupConfig(appConfig);
 
-    // Copy icons
-        await copyIcons(appConfig,platforms, appRootPath);
+//     // Copy icons
+//         await copyIcons(appConfig,platforms, appRootPath);
 
-    // Add platforms
-        addPlatforms();
+//     // Add platforms
+//         addPlatforms();
 
-    // Copy resourcpyResources(appConfig, appRootPath, platforms)
-        copyResources(appConfig, appRootPath, platforms)
+//     // Copy resourcpyResources(appConfig, appRootPath, platforms)
+//         copyResources(appConfig, appRootPath, platforms)
 
-        if(appConfig.splashscreen != undefined && appConfig.splashscreen.generate) {
-            // Generate splashscreen
-            await generateSplashscreens(appConfig, appRootPath);
-        } else {
-            // Copy splashscreen
-            copyIOSSplashscreens();
-        }
-    }
+//         if(appConfig.splashscreen != undefined && appConfig.splashscreen.generate) {
+//             // Generate splashscreen
+//             await generateSplashscreens(appConfig, appRootPath);
+//         } else {
+//             // Copy splashscreen
+//             copyIOSSplashscreens();
+//         }
+//     }
 
-    if (FULL_CREATE || UPDATE_PLUGIN) {
-// Added plugins
-// Please not if plugin has string variables you have to wrap it like "/"Some big string/""
-//         removePlugins(["com.q.users.cordova"]);
-        addPlugins();
+//     if (FULL_CREATE || UPDATE_PLUGIN) {
+// // Added plugins
+// // Please not if plugin has string variables you have to wrap it like "/"Some big string/""
+// //         removePlugins(["com.q.users.cordova"]);
+//         addPlugins();
 
-    }
-    if (FULL_CREATE || UPDATE_PLUGIN || UPDATE_BUNDLE) {
-        //update metadata
-        console.log("---updateMetadata---");
-        updateMetadata(appConfig, platforms);
-        //create bundle
-        console.log("---createBundle---");
-        createBundle(appConfig, platforms)
-        //create config.json file for main Q plugin
-        console.log("---copyQConfig---");
-        copyQConfig(appConfig, platforms);
-        // Create deploy config
-        console.log("---createDeployConfig---");
-        await createDeployConfig(appConfig, platforms, appRootPath);
-    }
+//     }
+//     if (FULL_CREATE || UPDATE_PLUGIN || UPDATE_BUNDLE) {
+//         //update metadata
+//         console.log("---updateMetadata---");
+//         updateMetadata(appConfig, platforms);
+//         //create bundle
+//         console.log("---createBundle---");
+//         createBundle(appConfig, platforms)
+//         //create config.json file for main Q plugin
+//         console.log("---copyQConfig---");
+//         copyQConfig(appConfig, platforms);
+//         // Create deploy config
+//         console.log("---createDeployConfig---");
+//         await createDeployConfig(appConfig, platforms, appRootPath);
+//     }
 
-    // cordovaBuild(BUILD_AFTER,platforms)
+//     // cordovaBuild(BUILD_AFTER,platforms)
 
-    if (FULL_CREATE) {
-        console.log("---performManulaChanges---");
-        performManulaChanges(appConfig, platforms)
-        console.log("---cordovaBuild---");
-        cordovaBuild(BUILD_AFTER,platforms)
-    }
+//     if (FULL_CREATE) {
+//         console.log("---performManulaChanges---");
+//         performManulaChanges(appConfig, platforms)
+//         console.log("---cordovaBuild---");
+//         cordovaBuild(BUILD_AFTER,platforms)
+//     }
 
-    if (FULL_CREATE || UPDATE_PLUGIN || UPDATE_BUNDLE) {
-        // Update name of app
-        console.log("---updateNameOfApp---");
-        // updateNameOfApp(appConfig, platforms)
-    }
+//     if (FULL_CREATE || UPDATE_PLUGIN || UPDATE_BUNDLE) {
+//         // Update name of app
+//         console.log("---updateNameOfApp---");
+//         // updateNameOfApp(appConfig, platforms)
+//     }
 
-    if(TRANSLATE_METADATA) {
-        console.log("---translateMetadata---");
-        translateMetadata(appConfig, platforms);
-    }
+//     if(TRANSLATE_METADATA) {
+//         console.log("---translateMetadata---");
+//         translateMetadata(appConfig, platforms);
+//     }
 
-    if(CAPTURE_SCREENSHOTS) {
-        console.log("---captureScreenshots---");
-        await captureScreenshots(appConfig, platforms);
-        console.log("---frameScreenshots---");
-        frameScreenshots(appConfig, platforms);
-    }
+//     if(CAPTURE_SCREENSHOTS) {
+//         console.log("---captureScreenshots---");
+//         await captureScreenshots(appConfig, platforms);
+//         console.log("---frameScreenshots---");
+//         frameScreenshots(appConfig, platforms);
+//     }
 
-    if(FRAME_SCREENSHOTS) {
-        console.log("---frameScreenshots---");
-        frameFileScreenshots(appConfig, platforms);
-    }
+//     if(FRAME_SCREENSHOTS) {
+//         console.log("---frameScreenshots---");
+//         frameFileScreenshots(appConfig, platforms);
+//     }
 
     // performManulaChanges(appConfig, platforms)
     // cordovaBuild(BUILD_AFTER,platforms)
@@ -1994,13 +1996,49 @@ function generatePluginInstallViaPlugman(pluginOption, appDirectory) {
     return commands
 }
 
+
+async function testPerformManulaChanges(appConfig, platforms) {
+    for(platform in platforms) {
+        var pathFolder = path.join(platforms[platform])
+        if(platform == "ios") {
+            var projectName = appConfig.name;
+            var googleServicePath = path.join(pathFolder, "platforms", "ios","GoogleService-Info.plist");
+            var projectPath = path.join(pathFolder, "platforms", "ios", projectName+".xcodeproj","project.pbxproj");
+
+            var proj = new xcode.project(projectPath);
+            proj = proj.parseSync();
+
+            var configurations = nonComments(proj.pbxEmbedFrameworksBuildPhaseObj());
+            proj.removeFromPbxEmbedFrameworksBuildPhase({
+                basename:"WebRTC.xcframework", 
+                group:"Embed Frameworks"
+            });
+
+            fs.writeFileSync(projectPath, proj.writeSync());
+            
+
+
+// PBXCopyFilesBuildPhase
+
+            // fs.writeFileSync(projectPath, proj.writeSync());
+            // var proj = new xcode.project(projectPath);
+            // proj = proj.parseSync();
+            // var udid = proj.getFirstTarget().uuid
+            // var pbxBuildConfigurationSection = proj.pbxXCBuildConfigurationSection()
+            // for (key in pbxBuildConfigurationSection){
+            //     if(pbxBuildConfigurationSection[key] != undefined && pbxBuildConfigurationSection[key].buildSettings != undefined && pbxBuildConfigurationSection[key].buildSettings['SWIFT_VERSION'] != undefined) {
+            //         pbxBuildConfigurationSection[key].buildSettings['SWIFT_VERSION'] = "4.2";
+            //     }
+            // }
+            // fs.writeFileSync(projectPath, proj.writeSync());
+        }
+    }
+}
+
 async function performManulaChanges(appConfig, platforms) {
     for(platform in platforms) {
         var pathFolder = path.join(platforms[platform])
-        if(platform == "android") {
-
-        } else {
-
+        if(platform == "ios") {
             // // Add legacy build mode
             var legacyWorkspaceSettingsPath = path.join(pathFolder, "platforms", "ios", appConfig.name+".xcworkspace","xcshareddata","WorkspaceSettings.xcsettings");
             fs.writeFileSync(legacyWorkspaceSettingsPath, '<?xml version="1.0" encoding="UTF-8"?>\n'+
@@ -2246,8 +2284,19 @@ async function performManulaChanges(appConfig, platforms) {
 
             var proj = new xcode.project(projectPath);
             proj = proj.parseSync();
-            addDebugBuildProperty(proj, projectName);
+            addDebugBuildProperty(proj, projectName, appConfig.packageId[platform]);
             fs.writeFileSync(projectPath, proj.writeSync());
+
+            //Remove WebRTC.xcframework from embeded copy
+            var proj = new xcode.project(projectPath);
+            proj = proj.parseSync();
+            var configurations = nonComments(proj.pbxEmbedFrameworksBuildPhaseObj());
+            proj.removeFromPbxEmbedFrameworksBuildPhase({
+                basename:"WebRTC.xcframework", 
+                group:"Embed Frameworks"
+            });
+            fs.writeFileSync(projectPath, proj.writeSync());
+            
         }
     }
 }
@@ -2272,32 +2321,37 @@ function addBuildFile(project, path, opt, group) {
         return file;
 }
 
-function addDebugBuildProperty(proj, appName) {
+function addDebugBuildProperty(proj, appName, bundleId) {
     var configurations = nonComments(proj.pbxXCBuildConfigurationSection()),
         key, configuration;
     let build_name = "Debug";
 
     for (key in configurations){
         configuration = configurations[key];
-        if ((!build_name || configuration.name === build_name) && (configuration.buildSettings["PRODUCT_NAME"]==appName)) {
-            const DEBUG_PROP = "\"DEBUG=1\"";
-            const GCC_PREPROCESSOR_PROP_KEY = "GCC_PREPROCESSOR_DEFINITIONS";
-            let gccPreprocessor = configuration.buildSettings[GCC_PREPROCESSOR_PROP_KEY];
-            if(gccPreprocessor == undefined) {
-                gccPreprocessor = ["\"$(inherited)\""];
+        console.log("ConfName:"+configuration.name+"; productName: "+configuration.buildSettings["PRODUCT_NAME"]);
+        if ((configuration.name === build_name) && (configuration.buildSettings["PRODUCT_NAME"]===appName || (configuration.buildSettings["PRODUCT_NAME"] === "\"$(TARGET_NAME)\"" ))) {
+            if(configuration.buildSettings["PRODUCT_BUNDLE_IDENTIFIER"] === bundleId) {
+                console.log(configuration)
+                const DEBUG_PROP = "\"DEBUG=1\"";
+                const GCC_PREPROCESSOR_PROP_KEY = "GCC_PREPROCESSOR_DEFINITIONS";
+                let gccPreprocessor = configuration.buildSettings[GCC_PREPROCESSOR_PROP_KEY];
+                if(gccPreprocessor == undefined) {
+                    gccPreprocessor = ["\"$(inherited)\""];
+                }
+
+                if(gccPreprocessor.indexOf(DEBUG_PROP) == -1) {
+                    gccPreprocessor.push(DEBUG_PROP);
+                }
+
+                configuration.buildSettings[GCC_PREPROCESSOR_PROP_KEY] = gccPreprocessor;
+
+
+                // OTHER_SWIFT_FLAGS = "$(inherited) -D COCOAPODS -D DEBUG";
+                const SWIFT_DEBUG_PROP = "-D DEBUG";
+                const OTHER_SWIFT_FLAGS_PROP_KEY = "OTHER_SWIFT_FLAGS";
+                configuration.buildSettings[OTHER_SWIFT_FLAGS_PROP_KEY] = "\"$(inherited) -D DEBUG\"";
+                console.log(configuration)
             }
-
-            if(gccPreprocessor.indexOf(DEBUG_PROP) == -1) {
-                gccPreprocessor.push(DEBUG_PROP);
-            }
-
-            configuration.buildSettings[GCC_PREPROCESSOR_PROP_KEY] = gccPreprocessor;
-
-
-            // OTHER_SWIFT_FLAGS = "$(inherited) -D COCOAPODS -D DEBUG";
-            const SWIFT_DEBUG_PROP = "-D DEBUG";
-            const OTHER_SWIFT_FLAGS_PROP_KEY = "OTHER_SWIFT_FLAGS";
-            configuration.buildSettings[OTHER_SWIFT_FLAGS_PROP_KEY] = "\"$(inherited) -D COCOAPODS -D DEBUG\"";
         }
     }
 }
