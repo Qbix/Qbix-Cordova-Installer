@@ -518,13 +518,13 @@ function addPlugins() {
             }
         }
     }
-    console.log("Apply patches")
+    console.log("Apply patch")
     for(platform in platforms) {
         const pathToApp = platforms[platform];
 
-        if(appConfig.patches[platform] != undefined) {
-            for(file in appConfig.patches[platform]) {
-                var patchObject = appConfig.patches[platform][file];
+        if(appConfig.patch != undefined && appConfig.patch[platform] != undefined) {
+            for(file in appConfig.patch[platform]) {
+                var patchObject = appConfig.patch[platform][file];
                 for(filePath in patchObject.path) {
                     try {
                         var pathToFileChange = path.join(pathToApp,patchObject.path[filePath]);
@@ -2007,38 +2007,40 @@ async function performManulaChanges(appConfig, platforms) {
             '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n'+
             '<plist version="1.0">\n'+
             '<dict>\n'+
-            '<key>BuildSystemType</key>\n'+
-            '<string>Original</string>\n'+
+            // '<key>BuildSystemType</key>\n'+
+            // '<string>Original</string>\n'+
+            '<key>PreviewsEnabled</key>\n'+
+            '<false/>\n'+
             '</dict>\n'+
             '</plist>');
 
-            var userLegacyWorkspaceSettingsPath = path.join(pathFolder, "platforms", "ios", appConfig.name+".xcworkspace","xcuserdata",require("os").userInfo().username+".xcuserdatad","WorkspaceSettings.xcsettings");
-            if (fs.existsSync(userLegacyWorkspaceSettingsPath)) {
-                fs.writeFileSync(userLegacyWorkspaceSettingsPath, '<?xml version="1.0" encoding="UTF-8"?>\n'+
-                '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n'+
-                '<plist version="1.0">\n'+
-                '<dict>\n'+
-                    '<key>BuildLocationStyle</key>\n'+
-                    '<string>UseAppPreferences</string>\n'+
-                    '<key>CustomBuildLocationType</key>\n'+
-                    '<string>RelativeToDerivedData</string>\n'+
-                    '<key>DerivedDataLocationStyle</key>\n'+
-                    '<string>Default</string>\n'+
-                    '<key>EnabledFullIndexStoreVisibility</key>\n'+
-                    '<false/>\n'+
-                    '<key>IssueFilterStyle</key>\n'+
-                    '<string>ShowActiveSchemeOnly</string>\n'+
-                    '<key>LiveSourceIssuesEnabled</key>\n'+
-                    '<true/>\n'+
-                '</dict>\n'+
-                '</plist>')
-            }
+            // var userLegacyWorkspaceSettingsPath = path.join(pathFolder, "platforms", "ios", appConfig.name+".xcworkspace","xcuserdata",require("os").userInfo().username+".xcuserdatad","WorkspaceSettings.xcsettings");
+            // if (fs.existsSync(userLegacyWorkspaceSettingsPath)) {
+            //     fs.writeFileSync(userLegacyWorkspaceSettingsPath, '<?xml version="1.0" encoding="UTF-8"?>\n'+
+            //     '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n'+
+            //     '<plist version="1.0">\n'+
+            //     '<dict>\n'+
+            //         '<key>BuildLocationStyle</key>\n'+
+            //         '<string>UseAppPreferences</string>\n'+
+            //         '<key>CustomBuildLocationType</key>\n'+
+            //         '<string>RelativeToDerivedData</string>\n'+
+            //         '<key>DerivedDataLocationStyle</key>\n'+
+            //         '<string>Default</string>\n'+
+            //         '<key>EnabledFullIndexStoreVisibility</key>\n'+
+            //         '<false/>\n'+
+            //         '<key>IssueFilterStyle</key>\n'+
+            //         '<string>ShowActiveSchemeOnly</string>\n'+
+            //         '<key>LiveSourceIssuesEnabled</key>\n'+
+            //         '<true/>\n'+
+            //     '</dict>\n'+
+            //     '</plist>')
+            // }
 
             //Modify Pod file
             let podfilePath = path.join(pathFolder, "platforms", "ios", "Podfile");
             var content = fs.readFileSync(podfilePath, "utf8");
             content = insert(content, content.indexOf('project'), "use_frameworks!\n\t");
-            content = insert(content, content.lastIndexOf('end'), "\tpod \"SimpleKeychain\"\n");
+            // content = insert(content, content.lastIndexOf('end'), "\tpod \"SimpleKeychain\"\n");
             content = content+"\n"+
                 "post_install do |installer|\n"+
                 "\tinstaller.pods_project.targets.each do |target|\n"+
