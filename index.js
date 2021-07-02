@@ -526,10 +526,14 @@ function addPlugins() {
             for(file in appConfig.patches[platform]) {
                 var patchObject = appConfig.patches[platform][file];
                 for(filePath in patchObject.path) {
-                    var pathToFileChange = path.join(pathToApp,patchObject.path[filePath]);
-                    var content = fs.readFileSync(pathToFileChange, "utf-8");
-                    content = content.replace(patchObject.find,patchObject.replace);
-                    fs.writeFileSync(pathToFileChange, content)
+                    try {
+                        var pathToFileChange = path.join(pathToApp,patchObject.path[filePath]);
+                        var content = fs.readFileSync(pathToFileChange, "utf-8");
+                        content = content.replace(patchObject.find,patchObject.replace);
+                        fs.writeFileSync(pathToFileChange, content)
+                    } catch(e) {
+                        console.error(e);
+                    }
                 }
             }
         }
