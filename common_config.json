@@ -344,13 +344,6 @@
         ]
       }
     },
-    "phonegap-plugin-media-stream": {
-      "git":"https://github.com/phonegap/phonegap-plugin-media-stream.git",
-      "platforms": [
-        "android",
-        "ios" 
-      ]
-    },
     "cordova-plugin-authenticationsession": {
       "git":"https://github.com/Qbix/cordova-plugin-authenticationsession.git",
       "platforms": [
