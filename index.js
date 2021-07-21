@@ -217,7 +217,7 @@ async function main() {
         await copyIcons(appConfig,platforms, appRootPath);
 
         // Add platforms
-        addPlatforms();
+        addPlatforms(androidSDKPath);
 
         // Copy resourcpyResources(appConfig, appRootPath, platforms)
         copyResources(appConfig, appRootPath, platforms)
@@ -469,10 +469,15 @@ function addProjects(appNameForOS) {
     }
 }
 
-function addPlatforms() {
+function addPlatforms(addPlatforms) {
     for(platform in platforms) {
         shell.cd(platforms[platform]);
         shell.exec('cordova platform add ' + platform).output;
+        if(platform == "android") {
+            var localProperties = path.join(platforms[platform], "platforms","android", "local.properties");
+            console.log("Local properties: "+localProperties);
+            fs.appendFileSync(localProperties, "sdk.dir="+androidSDKPath);
+        }
     }
 }
 
