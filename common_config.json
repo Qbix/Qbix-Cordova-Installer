@@ -54,6 +54,12 @@
     "AndroidXEnabled":"true"
   },
   "plugins":{
+    "phonegap-plugin-push": {
+      "git":"https://github.com/phonegap/phonegap-plugin-push.git#v1.10.5",
+      "platforms": [
+        "ios"
+      ]
+    },
     "cordova-plugin-q": {
       "git": "https://github.com/Qbix/cordova-plugin-q.git",
       "platforms": [
@@ -188,12 +194,6 @@
           }
         ]
       }
-    },
-    "phonegap-plugin-push": {
-      "git":"https://github.com/phonegap/phonegap-plugin-push.git#v1.10.5",
-      "platforms": [
-        "ios"
-      ]
     },
     "com.verso.cordova.clipboard": {
       "git":"https://github.com/Qbix/CordovaClipboard.git",

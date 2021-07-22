@@ -524,6 +524,7 @@ function addPlugins() {
                 }
             }
         }
+        printCocoaPods()
     }
     console.log("Apply patch")
     for(platform in platforms) {
@@ -543,6 +544,19 @@ function addPlugins() {
                     }
                 }
             }
+        }
+        printCocoaPods()
+    }
+}
+
+function printCocoaPods() {
+    for(platform in platforms) {
+        var pathFolder = path.join(platforms[platform])
+        if(platform == "ios") {
+            // // Add legacy build mode
+            var podfilePath = path.join(pathFolder, "platforms", "ios", "Podfile");
+            var content = fs.readFileSync(podfilePath, "utf8");
+            console.log(content);
         }
     }
 }
