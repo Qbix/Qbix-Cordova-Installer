@@ -89,13 +89,6 @@
         "ios"
       ]
     },
-    "cordova-plugin-splashscreen": {
-      "git": "https://github.com/apache/cordova-plugin-splashscreen.git",
-      "platforms": [
-        "android",
-        "ios" 
-      ]
-    },
     "cordova-plugin-appavailability": {
       "git": "https://github.com/ohh2ahh/AppAvailability.git",
       "platforms": [
@@ -361,7 +354,14 @@
       "platforms": [
         "android"
       ]
-    }
+    },
+    "cordova-plugin-splashscreen": {
+      "git": "https://github.com/apache/cordova-plugin-splashscreen.git",
+      "platforms": [
+        "android",
+        "ios" 
+      ]
+    },
   },
   "patches": {
     "android": [
