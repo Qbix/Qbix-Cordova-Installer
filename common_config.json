@@ -59,6 +59,13 @@
       "platforms": [
         "ios"
       ]
+    }, 
+    "cordova-plugin-audiotoggle": {
+      "git":"https://github.com/danielflippance/audiotoggle.git",
+      "platforms": [
+        "android",
+        "ios" 
+      ]
     },
     "cordova-plugin-q": {
       "git": "https://github.com/Qbix/cordova-plugin-q.git",
@@ -282,13 +289,6 @@
       "platforms": [
         "android",
         "ios"
-      ]
-    },
-    "cordova-plugin-audiotoggle": {
-      "git":"https://github.com/danielflippance/audiotoggle.git",
-      "platforms": [
-        "android",
-        "ios" 
       ]
     },
    "cordova-call": {
