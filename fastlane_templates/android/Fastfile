@@ -3,7 +3,7 @@ default_platform(:android)
 platform :android do
   desc "Submit to Crashlytics Beta"
   lane :beta do
-    gradle(task: "clean assembleDebug")
+    gradle(task: "clean bundleDebug")
     #upload_to_crashlytics
     #upload_to_firebase
     #upload_to_browserstack
@@ -19,19 +19,26 @@ platform :android do
   
   desc "Build debug APK"
   lane :build_debug do
-        gradle(task: "clean assembleDebug")
+    # gradle(task: "clean assembleDebug")
+    gradle(task: "clean bundleDebug")
+  end
+
+  desc "Build debug APK"
+  lane :build_debug_apk do
+    gradle(task: "clean assembleDebug")
   end
 
   desc "Build release APK"
   lane :build do
-        gradle(task: "clean assembleRelease")
+    # gradle(task: "clean assembleRelease")
+    gradle(task: "clean bundleRelease")
   end
 
   desc "Release to Google Play[Build,Screenshots,Deploy]"
   lane :release do
-      build
-      screenshots
-      deploy
+    build
+    screenshots
+    deploy
   end
 
   desc "Release without screenshots"
@@ -64,10 +71,18 @@ platform :android do
 
   desc "Deploy a new version to the Google Play"
   lane :deploy do
-    gradle(task: "clean assembleRelease")
+    #gradle(task: "clean assembleRelease")
+    gradle(task: "clean bundleRelease")
     upload_to_play_store
   end
 
-  
+  lane :deploy_draft do
+    gradle(task: "clean bundleRelease")
+    upload_to_play_store(
+      track: 'internal',
+      release_status: 'draft',
+      aab: "app/build/outputs/bundle/release/app.aab"
+    )
+  end
 
 end

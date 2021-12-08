@@ -49,7 +49,7 @@
     "loadUrlTimeoutValue":"60000",
     "AutoHideSplashScreen":"false",
     "SplashScreenDelay":"30000",
-    "android-targetSdkVersion":"28",
+    "android-targetSdkVersion":"30",
     "StatusBarOverlaysWebView":"false",
     "AndroidXEnabled":"true"
   },

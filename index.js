@@ -37,6 +37,7 @@ var ops = stdio.getopt({
     'android':{description: 'Do action for android. If skip, will take platforms from config file'},
     'ios':{description: 'Do action for iOS. If skip, will take platforms from config file'},
     'download_bundle':{description: 'just download bundle'},
+    'apk':{description: 'Operations only for apk'},
 
     'full_create': {description: 'Create app, Install plugins, Update bundle'},
     'update_plugin': {description: 'Install/Update Plugins, Update bundle'},
@@ -70,6 +71,7 @@ async function main() {
     var BUILD_AFTER = true
     var ANDROID = false;
     var IOS = false;
+    var APK = false;
 
 
     //NEW
@@ -95,6 +97,7 @@ async function main() {
     ANDROID = ops.android;
     IOS = ops.ios;
     DOWNLOAD_BUNDLE = ops.download_bundle
+    APK = ops.apk;
 
 
 
@@ -277,7 +280,7 @@ async function main() {
 
     if(BETA) {
         console.log("---distributeBeta---");
-        distributeBeta(appConfig, platforms);
+        distributeBeta(appConfig, platforms, APK);
     }
 
     if(DEPLOY) {
@@ -387,7 +390,7 @@ async function deploy(appConfig, platforms) {
     }
 }
 
-async function distributeBeta(appConfig, platforms) {
+async function distributeBeta(appConfig, platforms, apk) {
     console.log(platforms)
     for(platform in platforms) {
         var pathFolder = path.join(platforms[platform])
@@ -406,8 +409,13 @@ async function distributeBeta(appConfig, platforms) {
             console.log("Should run using root");
             // execWithLog("cd " + projectPath + " && fastlane add_plugin firebase_app_distribution");
             if(platform == "android") {
-                execWithLog("cd " + projectPath + " && fastlane build_debug");
-                execWithLog("cd " + projectPath + " && fastlane upload_to_firebase");
+                if(apk) {
+                    execWithLog("cd " + projectPath + " && fastlane build_debug_apk");
+                    execWithLog("cd " + projectPath + " && fastlane upload_to_firebase_apk");
+                } else {
+                    execWithLog("cd " + projectPath + " && fastlane build_debug");
+                    execWithLog("cd " + projectPath + " && fastlane upload_to_firebase");
+                }
             } else {
                 execWithLog("cd " + projectPath + " && fastlane build_debug_development");
                 execWithLog("cd " + projectPath + " && fastlane upload_to_firebase");
@@ -736,7 +744,7 @@ async function createDeployConfig(appConfig, platforms, appRootPath) {
                         lane :upload_to_firebase do\n \
                         firebase_app_distribution(\n \
                             app: \""+appId+"\",\n \
-                            apk_path: \"app/build/outputs/apk/debug/app-debug.apk\",\n \
+                            apk_path: \"app/build/outputs/bundle/debug/app.aab\",\n \
                             testers: \""+appConfig.development.firebase.testers+"\",\n \
                         )\n \
                     end\n"
@@ -745,10 +753,27 @@ async function createDeployConfig(appConfig, platforms, appRootPath) {
                         build\n \
                         firebase_app_distribution(\n \
                             app: \""+appId+"\",\n \
-                            apk_path: \"app/build/outputs/apk/release/app-release.apk\",\n \
+                            apk_path: \"app/build/outputs/bundle/release/app.aab\",\n \
                             testers: \""+appConfig.development.firebase.testers+"\",\n \
                         )\n \
                     end\n"    
+                firebseFunction += "desc \"Upload to Firebase\"\n \
+                        lane :upload_to_firebase_apk do\n \
+                        firebase_app_distribution(\n \
+                            app: \""+appId+"\",\n \
+                            apk_path: \"app/build/outputs/apk/debug/app-debug.apk\",\n \
+                            testers: \""+appConfig.development.firebase.testers+"\",\n \
+                        )\n \
+                    end\n"
+                firebseFunction += "desc \"Upload to Firebase Alpha\"\n \
+                        lane :upload_to_firebase_alpha_apk do\n \
+                        build\n \
+                        firebase_app_distribution(\n \
+                            app: \""+appId+"\",\n \
+                            apk_path: \"app/build/outputs/apk/release/app-release.apk\",\n \
+                            testers: \""+appConfig.development.firebase.testers+"\",\n \
+                        )\n \
+                    end\n"         
                 fastfileContent=fastfileContent.replace(/#function_upload_to_firebase/g,firebseFunction);
             }
 

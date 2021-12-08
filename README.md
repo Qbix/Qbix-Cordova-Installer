@@ -69,6 +69,17 @@ This command build project for platforms which set in config.json["platforms"] a
 ```node <full_path_to_script>/index.js --beta browserstack```
 
 
+Deploy:
+fastlane deploy_draft - first upload
+
+
+Troubles:
+0. This app is not published in the Google Play console.
+    Link Firebase to Google Play. Firebase->Project Settings->Integrations->Google Play
+1. App Distribution could not generate credentials from the refresh token specified.
+    bundle exec fastlane run firebase_app_distribution_login
+
+
 
 Cordova 6.x
 
