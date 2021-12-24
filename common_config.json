@@ -362,6 +362,18 @@
         "ios" 
       ]
     },
+    "cordova-plugin-file-transfer": {
+      "git": "https://github.com/apache/cordova-plugin-file-transfer.git",
+      "platforms": [
+        "android"
+      ]
+    },
+    "cordova-plugin-background-audio": {
+      "git": "https://github.com/danielsogl/cordova-plugin-background-audio.git",
+      "platforms": [
+        "android"
+      ]
+    }
   },
   "patches": {
     "android": [
