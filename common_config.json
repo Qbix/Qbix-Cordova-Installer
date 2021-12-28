@@ -373,6 +373,19 @@
       "platforms": [
         "android"
       ]
+    },
+    "cordova-plugin-background-fetch": {
+      "git": "https://github.com/transistorsoft/cordova-plugin-background-fetch.git",
+      "platforms": [
+        "android",
+        "ios"
+      ]
+    },
+    "cordova-plugin-service-worker": {
+      "git": "https://github.com/MobileChromeApps/cordova-plugin-service-worker.git",
+      "platforms": [
+        "ios"
+      ]
     }
   },
   "patches": {

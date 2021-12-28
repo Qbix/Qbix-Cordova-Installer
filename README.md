@@ -40,6 +40,16 @@ export PATH=$ANDROID_SDK_ROOT:$ANDROID_SDK_ROOT/emulator:$PATH
 ```
 source ~/.zshenv
 25. Login in Xcode apple dev account
+26. Install emulator
+/Users/administrator/Library/Android/sdk/tools/bin/avdmanager list 
+/Users/administrator/Library/Android/sdk/tools/bin/avdmanager create avd --force --name "AndroidScreenshotgeneratorEmulator" --abi google_apis_playstore/x86 --package 'system-images;android-30;google_apis_playstore;x86' -d <id_nexus6_emulator>
+
+/Users/administrator/Library/Android/sdk/tools/bin/avdmanager list 
+/Users/administrator/Library/Android/sdk/tools/bin/avdmanager create avd --force --name "AndroidTabletScreenshotgeneratorEmulator" --abi google_apis_playstore/x86 --package 'system-images;android-30;google_apis_playstore;x86' -d <id_pixel_c_emulator>
+
+27. Please check if exist emulators:
+"iPhone 8 Plus", "iPhone Xs Max", "iPad Pro (12.9-inch) (4th generation)"
+
 
 1. Setup Environment
 
@@ -68,6 +78,13 @@ This command build project for platforms which set in config.json["platforms"] a
 
 ```node <full_path_to_script>/index.js --beta browserstack```
 
+
+
+
+Manual changes for iOS:
+1. Change package name for ShareExt <main package name>.shareextension
+2. Change version and version code the same as main app
+3. Enable automatic manage signing
 
 Deploy:
 fastlane deploy_draft - first upload
