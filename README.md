@@ -85,8 +85,17 @@ Manual changes for iOS:
 1. Change package name for ShareExt <main package name>.shareextension
 2. Change version and version code the same as main app
 3. Enable automatic manage signing
+4. ShareExt -> Build Settings -> Embedded Content Contains Swift Code to NO
+4. ShareExt -> Build Settings -> Always Embed Swift Standart Libraries to NO
 
 Deploy:
+Google Play
+
+App Store:
+App Privacy information
+Primary Category
+Secondary Category
+
 fastlane deploy_draft - first upload
 
 
