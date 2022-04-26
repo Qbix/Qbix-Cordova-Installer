@@ -370,7 +370,7 @@
       ]
     },
     "cordova-plugin-file": {
-      "git": "https://github.com/apache/cordova-plugin-file.git",
+      "git": "https://github.com/apache/cordova-plugin-file.git#6.0.1",
       "platforms": [
         "android",
         "ios"
