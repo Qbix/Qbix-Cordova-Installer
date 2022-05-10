@@ -356,7 +356,7 @@
       ]
     },
     "cordova-plugin-splashscreen": {
-      "git": "https://github.com/apache/cordova-plugin-splashscreen.git",
+      "git": "https://github.com/EgorZhirNatife/cordova-plugin-splashscreen.git",
       "platforms": [
         "android",
         "ios" 
