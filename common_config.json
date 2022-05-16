@@ -96,6 +96,13 @@
         "ios"
       ]
     },
+    "cordova-apple-pay-google-pay": {
+      "git": "https://github.com/mahoho/cordova-apple-pay-google-pay.git",
+      "platforms": [
+        "android",
+        "ios"
+      ]
+    },
     "cordova-plugin-appavailability": {
       "git": "https://github.com/ohh2ahh/AppAvailability.git",
       "platforms": [
