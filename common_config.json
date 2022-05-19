@@ -97,7 +97,7 @@
       ]
     },
     "cordova-apple-pay-google-pay": {
-      "git": "https://github.com/mahoho/cordova-apple-pay-google-pay.git",
+      "git": "https://github.com/EgorZhirNatife/cordova-apple-pay-google-pay.git",
       "platforms": [
         "android",
         "ios"
