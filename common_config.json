@@ -398,7 +398,7 @@
       ]
     },
     "cordova-plugin-service-worker": {
-      "git": "https://github.com/MobileChromeApps/cordova-plugin-service-worker.git",
+      "git": "https://github.com/NikitaDubovikNatife/cordova-plugin-service-worker.git",
       "platforms": [
         "ios"
       ]
