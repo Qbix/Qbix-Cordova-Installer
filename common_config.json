@@ -60,6 +60,13 @@
         "ios"
       ]
     }, 
+    "cordova-plugin-cache-clear": {
+      "git":"https://github.com/rehiy/cordova-plugin-cache-clear.git",
+      "platforms": [
+        "android",
+        "ios" 
+      ]
+    },
     "cordova-plugin-audiotoggle": {
       "git":"https://github.com/danielflippance/audiotoggle.git",
       "platforms": [
