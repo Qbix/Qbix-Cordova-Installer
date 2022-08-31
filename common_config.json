@@ -89,6 +89,13 @@
         "ios" 
       ]
     },
+    "cordova-plugin-webrtc": {
+      "git":"https://github.com/ratson/cordova-webrtc.git",
+      "platforms": [
+        "android",
+        "ios"
+      ]
+    },
     "cordova-plugin-q-users": {
       "git": "https://github.com/Qbix/cordova-plugin-q-users.git",
       "platforms": [
