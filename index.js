@@ -353,10 +353,10 @@ async function main() {
 //         // updateNameOfApp(appConfig, platforms)
 //     }
 
-//     if(TRANSLATE_METADATA) {
-//         console.log("---translateMetadata---");
-//         translateMetadata(appConfig, platforms);
-//     }
+    if(TRANSLATE_METADATA) {
+        console.log("---translateMetadata---");
+        translateMetadata(appConfig, platforms);
+    }
 
 //     if(CAPTURE_SCREENSHOTS) {
 //         console.log("---captureScreenshots---");
@@ -370,8 +370,8 @@ async function main() {
 //         frameFileScreenshots(appConfig, platforms);
 //     }
 
-    // performManulaChanges(appConfig, platforms)
-    // cordovaBuild(BUILD_AFTER,platforms)
+    performManulaChanges(appConfig, platforms)
+    cordovaBuild(BUILD_AFTER,platforms)
 }
 
 async function deploy(appConfig, platforms) {
