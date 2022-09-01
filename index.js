@@ -290,85 +290,85 @@ async function main() {
 
     return;
 
-//     if (FULL_CREATE) {
-//     // Add projects
-//         console.log(appNameForOS);
-//         addProjects(appNameForOS)
+    if (FULL_CREATE) {
+    // Add projects
+        console.log(appNameForOS);
+        addProjects(appNameForOS)
 
-//     // setupConfig
-//         setupConfig(appConfig);
+    // setupConfig
+        setupConfig(appConfig);
 
-//     // Copy icons
-//         await copyIcons(appConfig,platforms, appRootPath);
+    // Copy icons
+        await copyIcons(appConfig,platforms, appRootPath);
 
-//     // Add platforms
-//         addPlatforms();
+    // Add platforms
+        addPlatforms();
 
-//     // Copy resourcpyResources(appConfig, appRootPath, platforms)
-//         copyResources(appConfig, appRootPath, platforms)
+    // Copy resourcpyResources(appConfig, appRootPath, platforms)
+        copyResources(appConfig, appRootPath, platforms)
 
-//         if(appConfig.splashscreen != undefined && appConfig.splashscreen.generate) {
-//             // Generate splashscreen
-//             await generateSplashscreens(appConfig, appRootPath);
-//         } else {
-//             // Copy splashscreen
-//             copyIOSSplashscreens();
-//         }
-//     }
+        if(appConfig.splashscreen != undefined && appConfig.splashscreen.generate) {
+            // Generate splashscreen
+            await generateSplashscreens(appConfig, appRootPath);
+        } else {
+            // Copy splashscreen
+            copyIOSSplashscreens();
+        }
+    }
 
-//     if (FULL_CREATE || UPDATE_PLUGIN) {
-// // Added plugins
-// // Please not if plugin has string variables you have to wrap it like "/"Some big string/""
-// //         removePlugins(["com.q.users.cordova"]);
-//         addPlugins();
+    if (FULL_CREATE || UPDATE_PLUGIN) {
+// Added plugins
+// Please not if plugin has string variables you have to wrap it like "/"Some big string/""
+//         removePlugins(["com.q.users.cordova"]);
+        addPlugins();
 
-//     }
-//     if (FULL_CREATE || UPDATE_PLUGIN || UPDATE_BUNDLE) {
-//         //update metadata
-//         console.log("---updateMetadata---");
-//         updateMetadata(appConfig, platforms);
-//         //create bundle
-//         console.log("---createBundle---");
-//         createBundle(appConfig, platforms)
-//         //create config.json file for main Q plugin
-//         console.log("---copyQConfig---");
-//         copyQConfig(appConfig, platforms);
-//         // Create deploy config
-//         console.log("---createDeployConfig---");
-//         await createDeployConfig(appConfig, platforms, appRootPath);
-//     }
+    }
+    if (FULL_CREATE || UPDATE_PLUGIN || UPDATE_BUNDLE) {
+        //update metadata
+        console.log("---updateMetadata---");
+        updateMetadata(appConfig, platforms);
+        //create bundle
+        console.log("---createBundle---");
+        createBundle(appConfig, platforms)
+        //create config.json file for main Q plugin
+        console.log("---copyQConfig---");
+        copyQConfig(appConfig, platforms);
+        // Create deploy config
+        console.log("---createDeployConfig---");
+        await createDeployConfig(appConfig, platforms, appRootPath);
+    }
 
-//     // cordovaBuild(BUILD_AFTER,platforms)
+    // cordovaBuild(BUILD_AFTER,platforms)
 
-//     if (FULL_CREATE) {
-//         console.log("---performManulaChanges---");
-//         performManulaChanges(appConfig, platforms)
-//         console.log("---cordovaBuild---");
-//         cordovaBuild(BUILD_AFTER,platforms)
-//     }
+    if (FULL_CREATE) {
+        console.log("---performManulaChanges---");
+        performManulaChanges(appConfig, platforms)
+        console.log("---cordovaBuild---");
+        cordovaBuild(BUILD_AFTER,platforms)
+    }
 
-//     if (FULL_CREATE || UPDATE_PLUGIN || UPDATE_BUNDLE) {
-//         // Update name of app
-//         console.log("---updateNameOfApp---");
-//         // updateNameOfApp(appConfig, platforms)
-//     }
+    if (FULL_CREATE || UPDATE_PLUGIN || UPDATE_BUNDLE) {
+        // Update name of app
+        console.log("---updateNameOfApp---");
+        // updateNameOfApp(appConfig, platforms)
+    }
 
     if(TRANSLATE_METADATA) {
         console.log("---translateMetadata---");
         translateMetadata(appConfig, platforms);
     }
 
-//     if(CAPTURE_SCREENSHOTS) {
-//         console.log("---captureScreenshots---");
-//         await captureScreenshots(appConfig, platforms);
-//         console.log("---frameScreenshots---");
-//         frameScreenshots(appConfig, platforms);
-//     }
+    if(CAPTURE_SCREENSHOTS) {
+        console.log("---captureScreenshots---");
+        await captureScreenshots(appConfig, platforms);
+        console.log("---frameScreenshots---");
+        frameScreenshots(appConfig, platforms);
+    }
 
-//     if(FRAME_SCREENSHOTS) {
-//         console.log("---frameScreenshots---");
-//         frameFileScreenshots(appConfig, platforms);
-//     }
+    if(FRAME_SCREENSHOTS) {
+        console.log("---frameScreenshots---");
+        frameFileScreenshots(appConfig, platforms);
+    }
 
     performManulaChanges(appConfig, platforms)
     cordovaBuild(BUILD_AFTER,platforms)
