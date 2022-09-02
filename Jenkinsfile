@@ -232,8 +232,8 @@ pipeline {
         stage('Make screenshots') {
             steps {
                 sh 'ls'
-                sh('cd '+localFolderName+' && '+env.NODE_PATH+' ../'+installerDir+'/index.js --screenshots')
-                sh('cd '+localFolderName+' && '+env.NODE_PATH+' ../'+installerDir+'/index.js --framing')
+//                 sh('cd '+localFolderName+' && '+env.NODE_PATH+' ../'+installerDir+'/index.js --screenshots')
+//                 sh('cd '+localFolderName+' && '+env.NODE_PATH+' ../'+installerDir+'/index.js --framing')
             }
         }
         stage('Deploy test') {
