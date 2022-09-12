@@ -2217,7 +2217,7 @@ async function performManulaChanges(appConfig, platforms) {
                     var pbxBuildConfigurationSection = proj.pbxXCBuildConfigurationSection()
             
                     // var targetAttributes = "\n\t\t\t\tTargetAttributes = {\n\t\t\t\t\t1D6058900D05DD3D006BFB54 = {\n\t\t\t\t\t\tDevelopmentTeam = F72EKUASP5;\n\t\t\t\t\t\tSystemCapabilities = {\n\t\t\t\t\t\t\tcom.apple.Push = {\n\t\t\t\t\t\t\t\tenabled = 1;\n\t\t\t\t\t\t\t};\n\t\t\t\t\t\t};\n\t\t\t\t\t};\n\t\t\t\t};";
-                    var targetAttributes = "\n\t\t\t\tTargetAttributes = {\n\t\t\t\t\t"+udid+" = {\n\t\t\t\t\t\tDevelopmentTeam = "+appConfig.signing.ios.team_id+";\n\t\t\t\t\t\t\n\t\t\t\t\tProvisioningStyle = Automatic;\n\t\t\t\t\t\t\n\t\t\t\t\t};\n\t\t\t\t};";
+                    var targetAttributes = "\n\t\t\t\tTargetAttributes = {\n\t\t\t\t\t"+udid+" = {\n\t\t\t\t\t\tDevelopmentTeam = "+appConfig.signing.ios.team_id+";\n\t\t\t\t\t\t\n\t\t\t\t\tProvisioningStyle = Manual;\n\t\t\t\t\t\t\n\t\t\t\t\t};\n\t\t\t\t};";
                 
 
                     var searchString = "LastUpgradeCheck = 510;";
