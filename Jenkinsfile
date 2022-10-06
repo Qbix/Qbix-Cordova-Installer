@@ -83,7 +83,7 @@ pipeline {
                 dir(screenGeneratorDir) {
                     git url: screenGeneratorRepo
                 }
-                checkout([$class: 'MercurialSCM', credentialsId: repoCredentialsId, source: bundleRepo])
+                checkout([$class: 'MercurialSCM', credentialsId: repoCredentialsId, source: bundleRepo, subdir: bundlePath])
             }
         }
         stage('Setup dependecies') {
