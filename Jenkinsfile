@@ -70,8 +70,7 @@ pipeline {
         
                     bundleLogin = env.Q_REPO_LOGIN
                     bundlePassword = env.Q_REPO_PASSWORD
-                    bundlePath = env.WORKSPACE
-//                     +'/'+localFolderName+'_repo'
+                    bundlePath = env.WORKSPACE+'/'+localFolderName+'_repo'
                     deploy_translateQScript = bundlePath+"/scripts/Q/translate.php"
                 }
             }
@@ -84,7 +83,7 @@ pipeline {
                 dir(screenGeneratorDir) {
                     git url: screenGeneratorRepo
                 }
-                checkout([$class: 'MercurialSCM', credentialsId: repoCredentialsId, source: bundleRepo, subdir: bundlePath])
+                checkout([$class: 'MercurialSCM', credentialsId: repoCredentialsId, source: bundleRepo])
             }
         }
         stage('Setup dependecies') {
