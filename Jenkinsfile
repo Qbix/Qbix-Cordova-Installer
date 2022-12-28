@@ -44,7 +44,7 @@ pipeline {
             steps {
                 script {
                     def props = readProperties file: 'env.properties' 
-                    echo props
+                    echo "props"
                     //SENSITIVE DATA
                     android_key_name = removeOneQuote(props.android_key_name)
                     android_sign_key = removeOneQuote(props.android_sign_key)
