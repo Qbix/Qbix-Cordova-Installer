@@ -44,18 +44,20 @@ pipeline {
             steps {
                 script {
                     def props = readProperties file: 'env.properties' 
-                    
+                    echo props
                     //SENSITIVE DATA
                     android_key_name = removeOneQuote(props.android_key_name)
                     android_sign_key = removeOneQuote(props.android_sign_key)
                     androidSigning = removeOneQuote(props.androidSigning)
-                     
+                    
+                    echo "1"
                     applicationKey = removeOneQuote(props.applicationKey)
                     androidFirebaseConfig = removeOneQuote(props.androidFirebaseConfig)
                     iosFirebaseConfig = removeOneQuote(props.iosFirebaseConfig)
 
                     repoCredentialsId = removeOneQuote(props.repoCredentialsId)
                      
+                    echo "2"
                     // NOT SENSITIVE DATA
                     bundleRepo = removeOneQuote(props.bundleRepo)
                     bundleBranch = removeOneQuote(props.bundleBranch)
@@ -68,10 +70,13 @@ pipeline {
                     fbId = removeOneQuote(props.fbId)
                     fbName = removeOneQuote(props.fbName)
         
+                    echo "3"
                     bundleLogin = env.Q_REPO_LOGIN
                     bundlePassword = env.Q_REPO_PASSWORD
                     bundlePath = env.WORKSPACE+'/'+localFolderName+'_repo'
                     deploy_translateQScript = bundlePath+"/scripts/Q/translate.php"
+                    
+                    echo "4"
                 }
             }
         }
