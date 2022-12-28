@@ -50,7 +50,7 @@ pipeline {
                     android_sign_key = removeOneQuote(props.android_sign_key)
                     androidSigning = removeOneQuote(props.androidSigning)
                     
-                    echo "1"
+                    echo "0"
                     applicationKey = removeOneQuote(props.applicationKey)
                     androidFirebaseConfig = removeOneQuote(props.androidFirebaseConfig)
                     iosFirebaseConfig = removeOneQuote(props.iosFirebaseConfig)
