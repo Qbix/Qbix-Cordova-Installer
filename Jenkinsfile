@@ -43,7 +43,7 @@ pipeline {
         stage('Ovveride env') {
             steps {
                 script {
-//                     def props = readProperties file: 'env.properties' 
+                    def props = readProperties file: 'env.properties' 
 //                     echo "props"
 //                     //SENSITIVE DATA
 //                     android_key_name = removeOneQuote(props.android_key_name)
